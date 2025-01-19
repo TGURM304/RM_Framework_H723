@@ -16,10 +16,12 @@ static void (*callback[E_CAN_END_DONT_REMOVE][BSP_CAN_FILTER_LIMIT]) (bsp_can_ms
 
 void bsp_can_init(bsp_can_e e, FDCAN_HandleTypeDef *h) {
     handle[e] = h;
-    HAL_FDCAN_Start(h);
     HAL_FDCAN_ActivateNotification(h, FDCAN_IT_TX_FIFO_EMPTY, 0);
     HAL_FDCAN_ActivateNotification(h, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     HAL_FDCAN_ActivateNotification(h, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
+    HAL_FDCAN_ConfigGlobalFilter(h, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_REJECT_REMOTE);
+    // 一定要在配置完后 Start，否则若总线上有 CAN 包，设备会 BUSY。
+    HAL_FDCAN_Start(h);
 }
 
 uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t *msg)) {
@@ -58,7 +60,8 @@ void bsp_can_send(bsp_can_e e, uint32_t id, uint8_t *s) {
 
 void bsp_can_rx_sol(bsp_can_e e, uint32_t fifo) {
     bsp_can_msg_t msg = { .port = e };
-    while(HAL_FDCAN_GetRxMessage(handle[e], fifo, &msg.header, msg.data) == HAL_OK) {
+    while(HAL_FDCAN_GetRxFifoFillLevel(handle[e], fifo)) {
+        if(HAL_FDCAN_GetRxMessage(handle[e], fifo, &msg.header, msg.data) != HAL_OK) break;
         if(msg.header.FDFormat == FDCAN_CLASSIC_CAN) {
             for(uint8_t i = 0; i < cnt[e]; i++) {
                 if(rx_id[e][i] == msg.header.Identifier) {
