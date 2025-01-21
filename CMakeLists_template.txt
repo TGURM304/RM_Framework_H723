@@ -74,9 +74,6 @@ recursion_include(${CMAKE_SOURCE_DIR}/External/Include)
 
 add_compile_options(-Werror)
 
-# CMSIS-DSP
-include_directories(CMSIS-DSP/Include CMSIS-DSP/PrivateInclude)
-
 set(LINKER_SCRIPT $${CMAKE_SOURCE_DIR}/${linkerScript})
 
 add_link_options(-Wl,-gc-sections,--print-memory-usage,-Map=$${PROJECT_BINARY_DIR}/$${PROJECT_NAME}.map)

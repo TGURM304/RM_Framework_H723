@@ -102,13 +102,17 @@ bool solve() {
     return false;
 }
 
+void stop_running_task() {
+    if(running) {
+        running = false;
+        force_stop = true;
+    }
+}
+
 void input(char c) {
     // Ctrl-C
     if(c == 3) {
-        if(running) {
-            running = false;
-            force_stop = true;
-        }
+        stop_running_task();
         return;
     }
 
@@ -134,9 +138,12 @@ void input(char c) {
         return;
     }
 
-    bsp_uart_send(TERMINAL_PORT, reinterpret_cast <uint8_t *> (&c), 1);
+    if(('a' <= c and c <= 'z') or ('0' <= c and c <= '9') or c == ' ' or ('A' <= c and c <= 'Z')) {
+        bsp_uart_send(TERMINAL_PORT, reinterpret_cast <uint8_t *> (&c), 1);
+        buf.push_back(c);
+    }
+
     // bsp_uart_printf(TERMINAL_PORT, "received: %d\r\n", (int) c);
-    buf.push_back(c);
 }
 
 void recv(bsp_uart_e e, uint8_t *s, uint16_t l) {
@@ -204,16 +211,6 @@ void app_terminal_init() {
             return true;
         }
     );
-    app_terminal_register_cmd("test", "while test",
-        [](const std::vector<std::string>& args) -> bool {
-            while(running) {
-                TERMINAL_INFO("test\r\n");
-                OS::Task::SleepSeconds(0.5);
-            }
-            return true;
-        }
-    );
-
     app_terminal_register_cmd("task", "get freertos task info",
         [](const std::vector<std::string>& args) -> bool {
             vTaskList(tmp);
@@ -221,7 +218,6 @@ void app_terminal_init() {
             return true;
         }
     );
-
     app_terminal_register_cmd("about", "show about_text",
         [](const std::vector<std::string>& args) -> bool {
             TERMINAL_INFO_PRINTF("%s", about_text);
@@ -241,4 +237,8 @@ void app_terminal_register_cmd(const std::string& name, const std::string& brief
     BSP_ASSERT(cmd.count(name) == 0);
     cmd[name] = func;
     cmd_brief[name] = brief;
+}
+
+bool app_terminal_running_flag() {
+    return running;
 }
