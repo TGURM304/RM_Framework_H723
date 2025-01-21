@@ -49,6 +49,7 @@
 ```c++
   bsp_rc_init();
   bsp_adc_init();
+  bsp_flash_init();
   bsp_buzzer_init();
   bsp_can_init(E_CAN1, &hfdcan1);
   bsp_can_init(E_CAN2, &hfdcan2);
