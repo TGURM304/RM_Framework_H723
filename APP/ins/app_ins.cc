@@ -6,14 +6,16 @@
 
 #include "alg_pid.h"
 #include "alg_quaternion_ekf.h"
+#include "app_terminal.h"
 #include "bsp_adc.h"
 #include "bsp_def.h"
 #include "bsp_uart.h"
+#include "bsp_flash.h"
 #include "sys_task.h"
 #include "tim.h"
 
 #define TEMPERATURE_COUNT 100
-#define GYRO_CORRECT_SAMPLE_COUNT 1500
+#define GYRO_CORRECT_SAMPLE_COUNT 10000
 
 #define IMU_TEMPERATURE_CONTROL_TIMER &htim3
 #define IMU_TEMPERATURE_CONTROL_CHANNEL TIM_CHANNEL_4
@@ -22,6 +24,11 @@ static bool inited_ = false;
 static app_ins_data_t data;
 
 Algorithm::PID temp_pid(Algorithm::PID::NONE);
+
+// uint8_t ins_flag = 1;
+
+bool calibrated = false;
+double gyro_correct[3];
 
 void app_ins_init() {
 	bsp_imu_init();
@@ -35,16 +42,79 @@ void app_ins_init() {
 	}
 	HAL_TIM_PWM_Start(IMU_TEMPERATURE_CONTROL_TIMER, IMU_TEMPERATURE_CONTROL_CHANNEL);
 	IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0.001f, 0);
+
+	auto flash = bsp_flash_data(); bsp_flash_read();
+	if(flash->sys_flag == 0x12345678) {
+		memcpy(gyro_correct, flash->imu_cali, 3 * sizeof(double));
+		calibrated = true;
+	}
+
+	app_terminal_register_cmd("ins", "ins commands", [flash](const auto &args) -> bool {
+		if(args.size() == 1) {
+			TERMINAL_INFO("usage: ins cali/watch/test/config\r\n");
+			return true;
+		}
+		if(args[1] == "cali") {
+			calibrated = false;
+			TERMINAL_INFO("正在校准陀螺仪，校准过程中请勿移动陀螺仪...\r\n");
+			int count = GYRO_CORRECT_SAMPLE_COUNT;
+			gyro_correct[0] = gyro_correct[1] = gyro_correct[2] = 0;
+			while(count -- and app_terminal_running_flag()) {
+				gyro_correct[0] += data.raw.gyro[0];
+				gyro_correct[1] += data.raw.gyro[1];
+				gyro_correct[2] += data.raw.gyro[2];
+				TERMINAL_SEND(TERMINAL_CLEAR_LINE, sizeof TERMINAL_CLEAR_LINE);
+				TERMINAL_INFO_PRINTF("[%d] %lf, %lf, %lf",
+					GYRO_CORRECT_SAMPLE_COUNT - count, gyro_correct[0], gyro_correct[1], gyro_correct[2]
+				);
+				OS::Task::SleepMilliseconds(1);
+			}
+			TERMINAL_INFO("\r\n");
+			if(!app_terminal_running_flag()) return false;
+			gyro_correct[0] /= GYRO_CORRECT_SAMPLE_COUNT;
+			gyro_correct[1] /= GYRO_CORRECT_SAMPLE_COUNT;
+			gyro_correct[2] /= GYRO_CORRECT_SAMPLE_COUNT;
+			TERMINAL_INFO_PRINTF("正在保存数据: %lf, %lf, %lf\r\n", gyro_correct[0], gyro_correct[1], gyro_correct[2]);
+			flash->sys_flag = 0x12345678;
+			memcpy(flash->imu_cali, gyro_correct, 3 * sizeof(double));
+			bsp_flash_write();
+			calibrated = true;
+			TERMINAL_INFO("校准完成\r\n");
+			return true;
+		}
+		if(args[1] == "watch") {
+			while(app_terminal_running_flag()) {
+				TERMINAL_INFO_PRINTF("%f,%f,%f\r\n", data.roll, data.pitch, data.yaw);
+				OS::Task::SleepMilliseconds(1);
+			}
+			return true;
+		}
+		if(args[1] == "test") {
+			if(!calibrated) {
+				TERMINAL_ERROR("陀螺仪未校准\r\n");
+				return false;
+			}
+			TERMINAL_INFO("正在测试陀螺仪，测试过程中请勿移动陀螺仪... (10s)\r\n");
+			double st = data.yaw;
+			OS::Task::SleepSeconds(10);
+			double ed = data.yaw;
+			TERMINAL_INFO_PRINTF("Yaw 轴零漂：%lf deg/min\r\n", (ed - st) * 6);
+			return true;
+		}
+		if(args[1] == "config") {
+			TERMINAL_INFO_PRINTF("%lf, %lf, %lf\r\n", gyro_correct[0], gyro_correct[1], gyro_correct[2]);
+			return true;
+		}
+		return false;
+	});
+
 	inited_ = true;
 }
-
-uint8_t ins_flag = 0;
-float gyro_correct[3];
 
 void app_ins_task(void *args) {
 	while(!inited_) OS::Task::SleepMilliseconds(10);
 
-	int count = 0, freq_cnt = 0;
+	int freq_cnt = 0;
 
 	while(true) {
 		bsp_imu_read(&data.raw);
@@ -56,31 +126,14 @@ void app_ins_task(void *args) {
 				std::max(0.0, temp_pid.update(data.raw.temp, 40))
 			), freq_cnt = 0;
 
-		if(ins_flag == 0) {
-			count += (std::abs(data.raw.temp - 40) < 1.0f);
-			if(count == TEMPERATURE_COUNT) ins_flag ++, count = 0;
-		}
-		if(ins_flag == 1) {
-			if(++count <= GYRO_CORRECT_SAMPLE_COUNT) {
-				gyro_correct[0] += data.raw.gyro[0];
-				gyro_correct[1] += data.raw.gyro[1];
-				gyro_correct[2] += data.raw.gyro[2];
-			}
-			if(count == GYRO_CORRECT_SAMPLE_COUNT) {
-				gyro_correct[0] /= GYRO_CORRECT_SAMPLE_COUNT;
-				gyro_correct[1] /= GYRO_CORRECT_SAMPLE_COUNT;
-				gyro_correct[2] /= GYRO_CORRECT_SAMPLE_COUNT;
-				ins_flag ++, count = 0;
-			}
-		}
-		if(ins_flag == 2) {
-			float gyro[3] = {
+		if(calibrated) {
+			double gyro[3] = {
 				data.raw.gyro[0] - gyro_correct[0],
 				data.raw.gyro[1] - gyro_correct[1],
 				data.raw.gyro[2] - gyro_correct[2]
 			};
 			IMU_QuaternionEKF_Update(
-				gyro[0], gyro[1], gyro[2],
+				static_cast <float> (gyro[0]), static_cast <float> (gyro[1]), static_cast <float> (gyro[2]),
 				data.raw.accel[0], data.raw.accel[1], data.raw.accel[2]
 			);
 			std::tie(data.roll, data.pitch, data.yaw) = IMU_QuaternionEKF_Data();
@@ -91,7 +144,7 @@ void app_ins_task(void *args) {
 }
 
 uint8_t app_ins_status() {
-	return ins_flag;
+	return 2 * calibrated;
 }
 
 const app_ins_data_t *app_ins_data() {
