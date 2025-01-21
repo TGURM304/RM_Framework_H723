@@ -32,9 +32,9 @@ uint8_t vofa_tail[4] = {0x00, 0x00, 0x80, 0x7f};
 void app_msg_vofa_send(bsp_uart_e e, std::initializer_list <double> f) {
     BSP_ASSERT(0 < f.size() and f.size() <= APP_MSG_VOFA_CHANNEL_LIMIT);
     uint8_t p = 0;
-    for(auto &i : f) {
-        ch[p ++] = static_cast <float> (i);
-    }
-    bsp_uart_send(e, reinterpret_cast <uint8_t *> (&ch), f.size() * sizeof(float));
-    bsp_uart_send(e, vofa_tail, sizeof vofa_tail);
+    for(const auto &i : f) ch[p ++] = static_cast <float> (i);
+    uint8_t buf[64] = { 0 };
+    std::memcpy(buf, reinterpret_cast <uint8_t *> (&ch), f.size() * sizeof(float));
+    std::memcpy(buf + f.size() * sizeof(float), vofa_tail, sizeof vofa_tail);
+    bsp_uart_send(e, buf, f.size() * sizeof(float) + sizeof vofa_tail);
 }

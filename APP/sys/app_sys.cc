@@ -24,6 +24,7 @@
 #include "bsp_def.h"
 
 #include "app_msg.h"
+#include "app_terminal.h"
 
 bool inited_ = false;
 
@@ -35,6 +36,7 @@ int8_t r = 0, g = 0, b = 0;
 
 void app_sys_init() {
     app_ins_init();
+    app_terminal_init();
 
 #if defined(COMPILE_CHASSIS)
     app_chassis_init();
@@ -58,9 +60,9 @@ void app_sys_task() {
     bsp_buzzer_flash(1976, 0.5, 125);
     while(true) {
         bsp_led_set(std::abs(r), std::abs(g), std::abs(b));
-        if(++ r > 50) r = -50;
-        if(++ g > 50) g = -50;
-        if(++ b > 50) b = -50;
+        if(++r > 50) r = -50;
+        if(++g > 50) g = -50;
+        if(++b > 50) b = -50;
         OS::Task::SleepMilliseconds(10);
     }
 }
@@ -73,15 +75,18 @@ void app_sys_task() {
  *  - 若不理解下面的代码是什么意思，请不要随意修改。
  */
 
-__weak void app_chassis_task(void *argument) {
+__weak void app_chassis_task(void* argument) {
     OS::Task::Current().Delete();
 }
-__weak void app_gimbal_task(void *argument) {
+
+__weak void app_gimbal_task(void* argument) {
     OS::Task::Current().Delete();
 }
-__weak void dev_dji_motor_task(void *argument) {
+
+__weak void dev_dji_motor_task(void* argument) {
     OS::Task::Current().Delete();
 }
-__weak void app_ins_task(void *argument) {
+
+__weak void app_ins_task(void* argument) {
     OS::Task::Current().Delete();
 }

@@ -6,6 +6,7 @@
 #include "bsp_def.h"
 #include "stdio.h"
 #include "string.h"
+#include "usbd_cdc_if.h"
 
 static uint8_t uart_tx_buf[UART_BUFFER_SIZE];
 static uint8_t uart_rx_buf[UART_ENUM_SIZE][UART_BUFFER_SIZE];
@@ -14,29 +15,32 @@ static void (*callback[UART_ENUM_SIZE])(bsp_uart_e e, uint8_t *s, uint16_t l);
 
 void bsp_uart_init(bsp_uart_e e, UART_HandleTypeDef *h) {
     BSP_ASSERT(handle[e] == NULL);
-    handle[e] = h;
+    if(e != E_UART_CDC) handle[e] = h;
 }
 
 void bsp_uart_set_callback(bsp_uart_e e, void (*f)(bsp_uart_e e, uint8_t *s, uint16_t l)) {
     BSP_ASSERT(callback[e] == NULL);
-    BSP_ASSERT(handle[e]);
+    BSP_ASSERT(e == E_UART_CDC || handle[e]);
     callback[e] = f;
-    HAL_UARTEx_ReceiveToIdle_DMA(handle[e], uart_rx_buf[e], UART_BUFFER_SIZE);
-    __HAL_DMA_DISABLE_IT(handle[e]->hdmarx, DMA_IT_HT);
+    if(e != E_UART_CDC) {
+        HAL_UARTEx_ReceiveToIdle_DMA(handle[e], uart_rx_buf[e], UART_BUFFER_SIZE);
+        __HAL_DMA_DISABLE_IT(handle[e]->hdmarx, DMA_IT_HT);
+    }
 }
 
 void bsp_uart_send(bsp_uart_e e, uint8_t *s, uint16_t l) {
-    BSP_ASSERT(handle[e]);
-#ifdef UART_USE_DMA_TRANSMIT
-    HAL_UART_Transmit_DMA(handle[e], s, l);
-    while(!__HAL_UART_GET_FLAG(handle[e],UART_FLAG_TC)) __NOP();
-#else
-    HAL_UART_Transmit(handle[e], s, l, HAL_MAX_DELAY);
-#endif
+    BSP_ASSERT(e == E_UART_CDC || handle[e]);
+    if(e == E_UART_CDC) {
+        // USB CDC
+        CDC_Transmit_HS(s, l);
+    } else {
+        // UART
+        HAL_UART_Transmit(handle[e], s, l, HAL_MAX_DELAY);
+    }
+
 }
 
 void bsp_uart_printf(bsp_uart_e e, const char *fmt, ...) {
-    BSP_ASSERT(handle[e]);
     va_list ap;
     va_start(ap, fmt);
     uint16_t len = vsnprintf(uart_tx_buf, UART_BUFFER_SIZE, fmt, ap);
@@ -65,4 +69,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *h) {
             break;
         }
     }
+}
+
+void usb_cdc_callback(uint8_t *s, uint16_t l) {
+    if(callback[E_UART_CDC] != NULL)
+        callback[E_UART_CDC](E_UART_CDC, s, l);
 }
