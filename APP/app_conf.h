@@ -10,6 +10,8 @@
  *  用来控制系统的一些变量，主要以 define 的形式存在
  */
 
+#define USE_TERMINAL
+
 // 底盘
 // #define COMPILE_CHASSIS
 
