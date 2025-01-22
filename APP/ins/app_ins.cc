@@ -14,7 +14,6 @@
 #include "sys_task.h"
 #include "tim.h"
 
-#define TEMPERATURE_COUNT 100
 #define GYRO_CORRECT_SAMPLE_COUNT 10000
 
 #define IMU_TEMPERATURE_CONTROL_TIMER &htim3
@@ -84,7 +83,7 @@ void app_ins_init() {
 		}
 		if(args[1] == "watch") {
 			while(app_terminal_running_flag()) {
-				TERMINAL_INFO_PRINTF("%f,%f,%f\r\n", data.roll, data.pitch, data.yaw);
+				TERMINAL_INFO_PRINTF("%f,%f,%f,%f\r\n", data.roll, data.pitch, data.yaw, data.raw.temp);
 				OS::Task::SleepMilliseconds(1);
 			}
 			return true;
@@ -94,11 +93,16 @@ void app_ins_init() {
 				TERMINAL_ERROR("陀螺仪未校准\r\n");
 				return false;
 			}
-			TERMINAL_INFO("正在测试陀螺仪，测试过程中请勿移动陀螺仪... (10s)\r\n");
-			double st = data.yaw;
-			OS::Task::SleepSeconds(10);
-			double ed = data.yaw;
-			TERMINAL_INFO_PRINTF("Yaw 轴零漂：%lf deg/min\r\n", (ed - st) * 6);
+			TERMINAL_INFO("正在测试陀螺仪，测试过程中请勿移动陀螺仪... (5s * 5)\r\n");
+			double sum = 0;
+			for(int i = 1; i <= 5; i++) {
+				double st = data.yaw;
+				OS::Task::SleepSeconds(5);
+				double ed = data.yaw;
+				TERMINAL_INFO_PRINTF("test #%d = %lf deg/min\r\n", i, (ed - st) * 12);
+				sum += (ed - st) * 12;
+			}
+			TERMINAL_INFO_PRINTF("avg = %lf deg/min\r\n", sum / 5);
 			return true;
 		}
 		if(args[1] == "config") {

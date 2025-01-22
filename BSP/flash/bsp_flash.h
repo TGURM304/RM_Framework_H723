@@ -7,6 +7,9 @@
 
 #include <stdint.h>
 
+// 使用板载 w25q64
+#define USE_EXTERNAL_FLASH
+
 typedef struct {
     uint32_t sys_flag;
     double imu_cali[3];

@@ -36,9 +36,10 @@ int8_t r = 0, g = 0, b = 0;
 
 void app_sys_init() {
     app_ins_init();
+#ifdef USE_TERMINAL
     app_terminal_init();
-
-#if defined(COMPILE_CHASSIS)
+#endif
+#ifdef COMPILE_CHASSIS
     app_chassis_init();
 #endif
 #ifdef COMPILE_GIMBAL
