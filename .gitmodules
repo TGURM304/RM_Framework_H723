@@ -1,0 +1,3 @@
+[submodule "BSP/flash/ee"]
+	path = BSP/flash/ee
+	url = https://github.com/nimaltd/ee.git
