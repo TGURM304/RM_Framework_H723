@@ -27,6 +27,7 @@ typedef struct {
     uint8_t mouse_l, mouse_r;
     uint16_t keyboard;
     int16_t reserved;
+    uint32_t timestamp;
 } bsp_rc_data_t;
 
 const bsp_rc_data_t *bsp_rc_data();

@@ -72,7 +72,7 @@ recursion_include(${CMAKE_SOURCE_DIR}/APP)
 recursion_include(${CMAKE_SOURCE_DIR}/Components)
 recursion_include(${CMAKE_SOURCE_DIR}/External/Include)
 
-add_compile_options(-Werror)
+add_compile_options(-Werror -Wno-psabi)
 
 set(LINKER_SCRIPT $${CMAKE_SOURCE_DIR}/${linkerScript})
 

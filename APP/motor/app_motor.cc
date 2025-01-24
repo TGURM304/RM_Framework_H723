@@ -31,15 +31,18 @@ void MotorController::update(double target) {
 		return;
 	}
 
+	if(error_code & APP_MOTOR_ERROR_TIMEOUT)
+		activate(), error_code = 0;
+
 	// Relax Mode
 	if(relaxed_) return;
 
 	for(auto &[fn, controller] : pipeline_) {
-		target = controller->update(fn(), target);
+		target = controller->update(fn(this), target);
 	}
-	motor_->update(output = target);
+	motor_->update(static_cast <float> (output = target));
 }
 
-void MotorController::add_controller(std::function <double()> fn, std::unique_ptr <Controller::Base> controller) {
+void MotorController::add_controller(const std::function <double(const MotorController *)>& fn, std::unique_ptr <Controller::Base> controller) {
 	pipeline_.emplace_back(fn, std::move(controller));
 }

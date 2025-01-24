@@ -7,7 +7,7 @@
 namespace OS {
     template <typename ResultType, typename ArgType, typename... Args>
     class TypeErasure {
-      public:
+    public:
         ArgType arg_;
         ResultType (*fun_) (ArgType, Args... args);
         TypeErasure(ResultType (*fun)(ArgType, Args... args), ArgType arg) : fun_(fun), arg_(arg) {}

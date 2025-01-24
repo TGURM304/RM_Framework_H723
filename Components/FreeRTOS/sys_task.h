@@ -42,6 +42,8 @@ namespace OS {
 
         static Task Current() { return Task(xTaskGetCurrentTaskHandle()); }
         void Delete() const { vTaskDelete(this->handle_); }
+        void Suspend() const { vTaskSuspend(this->handle_); }
+        void Resume() const { vTaskResume(this->handle_); }
         static void Yield() { taskYIELD(); }
     };
 }

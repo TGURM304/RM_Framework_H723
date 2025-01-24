@@ -48,7 +48,7 @@ void vision::send(uint8_t detect_color, bool reset_tracker) {
         .checksum = 0
     };
 
-    Append_CRC16_Check_Sum(reinterpret_cast <uint8_t *> (&pkg), sizeof pkg);
-
+    // TODO: CRC 未测试
+    CRC16::append(pkg);
     bsp_uart_send(E_UART_VISION, reinterpret_cast <uint8_t *> (&pkg), sizeof pkg);
 }
