@@ -12,6 +12,7 @@
 #include "bsp_def.h"
 #include "bsp_tim.h"
 #include "bsp_uart.h"
+#include "sys_signal.h"
 #include "sys_task.h"
 
 const char about_text[] =
@@ -106,6 +107,7 @@ void stop_running_task() {
     if(running) {
         running = false;
         force_stop = true;
+        OS::Signal::action(terminal, 0);
     }
 }
 
@@ -239,6 +241,6 @@ void app_terminal_register_cmd(const std::string& name, const std::string& brief
     cmd_brief[name] = brief;
 }
 
-bool app_terminal_running_flag() {
-    return running;
+bool* app_terminal_running_flag() {
+    return &running;
 }

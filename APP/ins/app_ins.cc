@@ -49,6 +49,7 @@ void app_ins_init() {
 	}
 
 	app_terminal_register_cmd("ins", "ins commands", [flash](const auto &args) -> bool {
+		auto running = app_terminal_running_flag();
 		if(args.size() == 1) {
 			TERMINAL_INFO("usage: ins cali/watch/test/config\r\n");
 			return true;
@@ -58,7 +59,7 @@ void app_ins_init() {
 			TERMINAL_INFO("正在校准陀螺仪，校准过程中请勿移动陀螺仪...\r\n");
 			int count = GYRO_CORRECT_SAMPLE_COUNT;
 			gyro_correct[0] = gyro_correct[1] = gyro_correct[2] = 0;
-			while(count -- and app_terminal_running_flag()) {
+			while(count -- and *running) {
 				gyro_correct[0] += data.raw.gyro[0];
 				gyro_correct[1] += data.raw.gyro[1];
 				gyro_correct[2] += data.raw.gyro[2];
@@ -69,7 +70,7 @@ void app_ins_init() {
 				OS::Task::SleepMilliseconds(1);
 			}
 			TERMINAL_INFO("\r\n");
-			if(!app_terminal_running_flag()) return false;
+			if(!*running) return false;
 			gyro_correct[0] /= GYRO_CORRECT_SAMPLE_COUNT;
 			gyro_correct[1] /= GYRO_CORRECT_SAMPLE_COUNT;
 			gyro_correct[2] /= GYRO_CORRECT_SAMPLE_COUNT;
