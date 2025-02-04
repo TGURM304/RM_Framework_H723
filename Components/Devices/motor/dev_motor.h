@@ -5,7 +5,7 @@
 #pragma once
 
 typedef struct {
-    float speed, angle, current, temperature;
+    float speed, angle, current, torque, temperature;
     unsigned int last_online_time;
 } MotorStatus;
 

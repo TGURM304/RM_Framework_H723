@@ -5,12 +5,18 @@
 #pragma once
 
 #include <string>
+#include <memory>
+
+#include "dev_motor.h"
+
+class MotorController;
 
 namespace Controller {
 	class Base {
 	public:
 		std::string type;
 		virtual ~Base() = default;
-		virtual double update(double current, double target) = 0;
+		virtual float update(float current, float target) = 0;
+		virtual float update(const MotorController *motor, float target) = 0;
 	};
 }

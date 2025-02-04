@@ -6,6 +6,6 @@
 
 using namespace Controller;
 
-double ForwardFeed::update(double current, double target) {
+float ForwardFeed::update(float current, float target) {
 	return current + target;
 }
