@@ -4,8 +4,11 @@
 
 #include "bsp_flash.h"
 
-#include "ee.h"
+#ifdef USE_EXTERNAL_FLASH
 #include "w25q64.h"
+#else
+#include "ee.h"
+#endif
 
 bsp_flash_data_t flash;
 
@@ -25,12 +28,14 @@ void bsp_flash_read() {
 #endif
 }
 
-void bsp_flash_write() {
+uint8_t bsp_flash_write() {
 #ifdef USE_EXTERNAL_FLASH
-    OSPI_W25Qxx_SectorErase(0);
-    OSPI_W25Qxx_WriteBuffer((uint8_t *) &flash, 0, sizeof(flash));
+    uint8_t err = OSPI_W25Qxx_OK;
+    err |= OSPI_W25Qxx_SectorErase(0);
+    err |= OSPI_W25Qxx_WriteBuffer((uint8_t *) &flash, 0, sizeof(flash));
+    return err == OSPI_W25Qxx_OK;
 #else
-    EE_Write();
+    return EE_Write();
 #endif
 }
 

@@ -10,6 +10,9 @@
  *  用来控制系统的一些变量，主要以 define 的形式存在
  */
 
+#define TERMINAL_USER_NAME "user"
+#define TERMINAL_PLATFORM_NAME "stm32"
+
 #define USE_TERMINAL
 
 // 底盘

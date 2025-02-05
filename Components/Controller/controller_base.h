@@ -5,9 +5,6 @@
 #pragma once
 
 #include <string>
-#include <memory>
-
-#include "dev_motor.h"
 
 class MotorController;
 

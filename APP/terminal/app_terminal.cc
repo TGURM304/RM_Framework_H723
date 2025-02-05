@@ -14,6 +14,7 @@
 #include "bsp_uart.h"
 #include "sys_signal.h"
 #include "sys_task.h"
+#include "app_conf.h"
 
 const char about_text[] =
 " ________  __            __       \r\n"
@@ -41,7 +42,13 @@ bool running = false, result = false, force_stop = false;
 std::pair <std::function<bool(std::vector<std::string>)>, std::vector <std::string>> runtime;
 
 void show_head() {
-    bsp_uart_printf(TERMINAL_PORT, "%s%s@%s:%s%s%s$\e[00m ", TERMINAL_COLOR_GREEN, "user", "stm32", TERMINAL_COLOR_BLUE, "~", TERMINAL_COLOR_GREEN);
+    bsp_uart_printf(TERMINAL_PORT, "%s%s@%s:%s%s%s$\e[00m ",
+        TERMINAL_COLOR_GREEN,
+        TERMINAL_USER_NAME, TERMINAL_PLATFORM_NAME,
+        TERMINAL_COLOR_BLUE,
+        "~",
+        TERMINAL_COLOR_GREEN
+    );
 }
 
 void fill_buf(const std::string &val) {

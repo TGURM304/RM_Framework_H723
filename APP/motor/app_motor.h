@@ -9,8 +9,8 @@
 #include <memory>
 #include <functional>
 
-#include "controller.h"
-#include "dev_motor.h"
+#include "controller_base.h"
+#include "motor_base.h"
 
 #define APP_MOTOR_ERROR_TIMEOUT 0b00000001
 #define APP_MOTOR_ERROR_STALL   0b00000010

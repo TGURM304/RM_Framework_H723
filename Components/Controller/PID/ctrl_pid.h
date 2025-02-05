@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "controller.h"
+#include "controller_base.h"
 
 namespace Controller {
 	class PID : public Base {
@@ -26,6 +26,10 @@ namespace Controller {
 		void clear();
 		float update(float current, float target) override;
 		float update(const MotorController *motor, float target) override { return 0; }
+		void set_para(const double Kp, const double Ki, const double Kd, const double out_limit, const double iout_limit) {
+			Kp_ = Kp, Ki_ = Ki, Kd_ = Kd, out_limit_ = out_limit, iout_limit_ = iout_limit;
+			clear();
+		}
 	private:
 		double Kp_, Ki_, Kd_, out_limit_, iout_limit_;
 		double err[3]{}, p_out = 0, i_out = 0, d_out = 0, out = 0;
