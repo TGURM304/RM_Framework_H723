@@ -4,16 +4,18 @@
 
 #include "app_ins.h"
 
-#include "alg_pid.h"
+#include "ctrl_pid.h"
 #include "alg_quaternion_ekf.h"
 #include "app_terminal.h"
 #include "bsp_adc.h"
+#include "bsp_buzzer.h"
 #include "bsp_def.h"
 #include "bsp_uart.h"
 #include "bsp_flash.h"
 #include "sys_task.h"
 #include "tim.h"
 
+#define FLASH_KEYWORD 998244353
 #define GYRO_CORRECT_SAMPLE_COUNT 10000
 
 #define IMU_TEMPERATURE_CONTROL_TIMER &htim3
@@ -22,9 +24,7 @@
 static bool inited_ = false;
 static app_ins_data_t data;
 
-Algorithm::PID temp_pid(Algorithm::PID::NONE);
-
-// uint8_t ins_flag = 1;
+Controller::PID temp_pid;
 
 bool calibrated = false;
 double gyro_correct[3];
@@ -43,22 +43,32 @@ void app_ins_init() {
 	IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0.001f, 0);
 
 	auto flash = bsp_flash_data(); bsp_flash_read();
-	if(flash->sys_flag == 0x12345678) {
+	if(flash->sys_flag == FLASH_KEYWORD) {
+		// 从 Flash 中读陀螺仪参数
 		memcpy(gyro_correct, flash->imu_cali, 3 * sizeof(double));
 		calibrated = true;
 	}
 
 	app_terminal_register_cmd("ins", "ins commands", [flash](const auto &args) -> bool {
+		auto running = app_terminal_running_flag();
 		if(args.size() == 1) {
 			TERMINAL_INFO("usage: ins cali/watch/test/config\r\n");
 			return true;
 		}
 		if(args[1] == "cali") {
 			calibrated = false;
-			TERMINAL_INFO("正在校准陀螺仪，校准过程中请勿移动陀螺仪...\r\n");
+			TERMINAL_INFO("正在等待陀螺仪温控...\r\n");
+			while(std::abs(data.raw.temp - 40.0f) > 0.5) {
+				TERMINAL_SEND(TERMINAL_CLEAR_LINE, sizeof TERMINAL_CLEAR_LINE);
+				TERMINAL_INFO_PRINTF("当前温度: %f", data.raw.temp);
+				OS::Task::SleepMilliseconds(250);
+			}
+			TERMINAL_SEND(TERMINAL_CLEAR_LINE, sizeof TERMINAL_CLEAR_LINE);
+			TERMINAL_INFO_PRINTF("当前温度: %f", data.raw.temp);
+			TERMINAL_INFO("\r\n正在校准陀螺仪，校准过程中请勿移动陀螺仪...\r\n");
 			int count = GYRO_CORRECT_SAMPLE_COUNT;
 			gyro_correct[0] = gyro_correct[1] = gyro_correct[2] = 0;
-			while(count -- and app_terminal_running_flag()) {
+			while(count -- and *running) {
 				gyro_correct[0] += data.raw.gyro[0];
 				gyro_correct[1] += data.raw.gyro[1];
 				gyro_correct[2] += data.raw.gyro[2];
@@ -69,20 +79,24 @@ void app_ins_init() {
 				OS::Task::SleepMilliseconds(1);
 			}
 			TERMINAL_INFO("\r\n");
-			if(!app_terminal_running_flag()) return false;
+			if(!*running) return false;
 			gyro_correct[0] /= GYRO_CORRECT_SAMPLE_COUNT;
 			gyro_correct[1] /= GYRO_CORRECT_SAMPLE_COUNT;
 			gyro_correct[2] /= GYRO_CORRECT_SAMPLE_COUNT;
 			TERMINAL_INFO_PRINTF("正在保存数据: %lf, %lf, %lf\r\n", gyro_correct[0], gyro_correct[1], gyro_correct[2]);
-			flash->sys_flag = 0x12345678;
+			flash->sys_flag = FLASH_KEYWORD;
 			memcpy(flash->imu_cali, gyro_correct, 3 * sizeof(double));
-			bsp_flash_write();
-			calibrated = true;
-			TERMINAL_INFO("校准完成\r\n");
+			if(bsp_flash_write()) {
+				calibrated = true;
+				TERMINAL_INFO("校准完成\r\n");
+			} else {
+				TERMINAL_ERROR("Flash 写入失败\r\n");
+			}
+
 			return true;
 		}
 		if(args[1] == "watch") {
-			while(app_terminal_running_flag()) {
+			while(*running) {
 				TERMINAL_INFO_PRINTF("%f,%f,%f,%f\r\n", data.roll, data.pitch, data.yaw, data.raw.temp);
 				OS::Task::SleepMilliseconds(1);
 			}
@@ -127,7 +141,7 @@ void app_ins_task(void *args) {
 			__HAL_TIM_SetCompare(
 				IMU_TEMPERATURE_CONTROL_TIMER,
 				IMU_TEMPERATURE_CONTROL_CHANNEL,
-				std::max(0.0, temp_pid.update(data.raw.temp, 40))
+				std::max(0.0f, temp_pid.update(data.raw.temp, 40))
 			), freq_cnt = 0;
 
 		if(calibrated) {

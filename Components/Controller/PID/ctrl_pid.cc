@@ -8,7 +8,7 @@
 
 using namespace Controller;
 
-double PID::update(double current, double target) {
+float PID::update(float current, float target) {
 	err[2] = err[1], err[1] = err[0], err[0] = target - current;
 	p_out =  Kp_ * err[0];
 	i_out += Ki_ * err[0];
@@ -16,7 +16,7 @@ double PID::update(double current, double target) {
 	Limit(i_out, iout_limit_);
 	out = p_out + i_out + d_out;
 	Limit(out, out_limit_);
-	return out;
+	return static_cast <float> (out);
 }
 
 void PID::clear() {

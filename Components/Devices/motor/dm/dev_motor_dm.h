@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "dev_motor.h"
+#include "motor_base.h"
 #include "bsp_can.h"
 #include <cstdint>
 

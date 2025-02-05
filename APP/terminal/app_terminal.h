@@ -61,4 +61,4 @@ extern "C" {
 void app_terminal_init();
 void app_terminal_register_cmd(const std::string& name, const std::function <bool(std::vector<std::string>)>& func);
 void app_terminal_register_cmd(const std::string& name, const std::string &brief, const std::function <bool(std::vector<std::string>)>& func);
-bool app_terminal_running_flag();
+bool* app_terminal_running_flag();

@@ -21,7 +21,7 @@ extern "C" {
 
 void bsp_flash_init();
 void bsp_flash_read();
-void bsp_flash_write();
+uint8_t bsp_flash_write();
 bsp_flash_data_t *bsp_flash_data();
 
 #ifdef __cplusplus
