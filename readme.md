@@ -1,13 +1,63 @@
-# RM_Framework_H723
+# RM_Framework_F407
 
 > [!NOTE]
 > 该项目处于开发阶段，存在大量未测试功能，不保证稳定性。
+> - 该项目依赖大疆 C 型开发板，如需使用其他开发板请自行移植。
+> - 请不要在 `Core` 目录下实现过多代码，否则会造成不必要的麻烦。
+> - 对于大多使用场景，你只需要完善 `app_gimbal` 和 `app_chassis`，即可实现基本的控制。
 
-### Note
+## 快速开始
 
-- 该项目依赖达妙 MC02 型开发板，如需使用其他开发板请自行移植。
-- 请不要在 `Core` 目录下实现过多代码，否则会造成不必要的麻烦。
-- 对于大多使用场景，你只需要完善 `app_gimbal` 和 `app_chassis`，即可实现基本的控制。
+- **Fork** 本仓库，创建属于你自己的分支。
+- 使用 `git clone` 将仓库克隆到本地。
+- 使用 `CLion` 打开它。
+- 打开 `STM32CubeMX` 生成代码。
+- 在 `Core/Src/main.c` 中添加形如下面的初始化函数（请根据实际情况选择串口）。
+```c++
+  bsp_rc_init();
+  bsp_adc_init();
+  bsp_flash_init();
+  bsp_buzzer_init();
+  bsp_can_init(E_CAN1, &hfdcan1);
+  bsp_can_init(E_CAN2, &hfdcan2);
+  bsp_can_init(E_CAN3, &hfdcan3);
+  bsp_uart_init(E_UART_DEBUG, &huart1);
+```
+- **根据实际情况修改 app_conf.h 中的 ROBOT_BRIEF。**
+- 检查无误后编译运行。
+
+### 系统状态指示
+
+上电后 `led` 亮红灯，进入 `FreeRTOS` 后变为蓝灯，且蜂鸣器响一声。
+
+陀螺仪初始化时绿灯常亮。
+
+> [!CAUTION]
+> 绿灯常亮时请勿移动开发板。
+
+若无法从 Flash 中读取陀螺仪数据，会自行进入快速校准流程并存储校准数据。
+
+**注：快速校准采样时间有限，若条件允许推荐通过终端重新校准。**
+
+系统初始化结束后蜂鸣器连续响两声，此后 `led` 变为白色呼吸灯表示系统正常工作。
+
+异常指示：
+
+- 黄灯快闪：Flash 校验未通过，程序内特征信息与开发板内存储信息不符。
+  - 可通过终端使用 `about` 命令查询代码特征信息。
+  - 若确定没有烧写错误的代码，可通过终端使用 `flash clear` 命令清除相关数据。（也可通过全片擦除实现）
+
+### 关于终端
+
+在最近几个版本的更新中加入了 `app_terminal`，默认挂载到 `E_UART_DEBUG`。
+
+可使用 [Termius](https://www.termius.com/)（推荐）通过串口连接终端（波特率 `2000000`）。
+
+连接终端后，可输入 `help` 命令查看已注册的命令及其概要文本。
+
+可输入 `ins cali` 命令校准陀螺仪。
+
+## 开发说明
 
 ### 项目架构
 
@@ -31,48 +81,3 @@
 期望下，上述三个部分是相互独立的，这将带来更高的可维护性。
 
 该项目已开启 `-Werror` 编译选项，任何警告都会被视为错误。
-
-### 额外的
-
-如果你认为这份代码中有任何问题，请提出 Issue 或提交 Pull Request。
-
-在此之前你需要学会使用 GitHub。
-
-### 快速开始
-
-- **Fork** 本仓库，创建属于你自己的分支。
-- 使用 `git clone` 将仓库克隆到本地。
-- 使用 `CLion` 打开它。
-- 打开 `STM32CubeMX` 生成代码。
-- 在 `Core/Src/main.c` 中添加形如下面的初始化函数（请根据实际情况选择串口）。
-```c++
-  bsp_rc_init();
-  bsp_adc_init();
-  bsp_flash_init();
-  bsp_buzzer_init();
-  bsp_can_init(E_CAN1, &hfdcan1);
-  bsp_can_init(E_CAN2, &hfdcan2);
-  bsp_can_init(E_CAN3, &hfdcan3);
-  bsp_uart_init(E_UART_DEBUG, &huart1);
-```
-- 检查无误后编译运行。
-
-### 系统状态指示
-
-上电后 `led` 亮红灯，进入 `FreeRTOS` 后变为蓝灯，且蜂鸣器响一声。
-
-陀螺仪初始化时绿灯常亮。
-
-若绿灯长时间不熄灭，说明 flash 中无陀螺仪数据，需要使用电脑连接终端校准陀螺仪。
-
-系统初始化结束后蜂鸣器连续响两声，此后 `led` 变为白色呼吸灯表示系统正常工作。
-
-### 关于终端
-
-在最近几个版本的更新中加入了 `app_terminal`，默认挂载到 `E_UART_DEBUG`。
-
-可使用 [Termius](https://www.termius.com/)（推荐）通过串口连接终端（波特率 `2000000`）。
-
-连接终端后，可输入 `help` 命令查看已注册的命令及其概要文本。
-
-可输入 `ins cali` 命令校准陀螺仪。
