@@ -4,41 +4,23 @@
 
 #include "bsp_flash.h"
 
-#ifdef USE_EXTERNAL_FLASH
+#include "bsp_def.h"
+#include "cmsis_os2.h"
+#include "easyflash.h"
 #include "w25q64.h"
-#else
-#include "ee.h"
-#endif
 
-bsp_flash_data_t flash;
-
-void bsp_flash_init() {
-#ifdef USE_EXTERNAL_FLASH
-    OSPI_W25Qxx_Init();
-#else
-    EE_Init(&flash, sizeof flash);
-#endif
+uint8_t bsp_flash_init() {
+    return easyflash_init() == EF_NO_ERR;
 }
 
-void bsp_flash_read() {
-#ifdef USE_EXTERNAL_FLASH
-    OSPI_W25Qxx_ReadBuffer((uint8_t *) &flash, 0, sizeof(flash));
-#else
-    EE_Read();
-#endif
+void bsp_flash_read(const char *s, void *buf, size_t len) {
+    ef_get_env_blob(s, buf, len, NULL);
 }
 
-uint8_t bsp_flash_write() {
-#ifdef USE_EXTERNAL_FLASH
-    uint8_t err = OSPI_W25Qxx_OK;
-    err |= OSPI_W25Qxx_SectorErase(0);
-    err |= OSPI_W25Qxx_WriteBuffer((uint8_t *) &flash, 0, sizeof(flash));
-    return err == OSPI_W25Qxx_OK;
-#else
-    return EE_Write();
-#endif
+uint8_t bsp_flash_write(const char *s, void *buf, size_t len) {
+    return ef_set_env_blob(s, buf, len) == EF_NO_ERR;
 }
 
-bsp_flash_data_t *bsp_flash_data() {
-    return &flash;
+void bsp_flash_print_status() {
+    ef_print_env();
 }
