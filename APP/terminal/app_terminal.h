@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "bsp_uart.h"
 #include <functional>
 #include <string>
 
@@ -35,12 +36,9 @@
 #define TERMINAL_COLOR_DEFAULT ANSI_CSI(39)   /* 默认 */
 
 #define TERMINAL_SEND(val, sz) bsp_uart_send(TERMINAL_PORT, (uint8_t *) val, sz)
-#define TERMINAL_INFO(str) bsp_uart_printf(TERMINAL_PORT, str)
-#define TERMINAL_INFO_PRINTF(str, ...) bsp_uart_printf(TERMINAL_PORT, str, __VA_ARGS__)
-#define TERMINAL_ERROR(str) bsp_uart_printf(TERMINAL_PORT, TERMINAL_COLOR_RED str)
-#define TERMINAL_ERROR_PRINTF(str, ...) bsp_uart_printf(TERMINAL_PORT, TERMINAL_COLOR_RED str, __VA_ARGS__)
-#define TERMINAL_ERROR_BLOD(str) bsp_uart_printf(TERMINAL_PORT, ANSI_BOLD_ON TERMINAL_COLOR_RED str ANSI_BOLD_OFF)
-#define TERMINAL_ERROR_BLOD_PRINTF(str, ...) bsp_uart_printf(TERMINAL_PORT, ANSI_BOLD_ON TERMINAL_COLOR_RED str ANSI_BOLD_OFF, __VA_ARGS__)
+#define TERMINAL_INFO(str, args...) bsp_uart_printf(TERMINAL_PORT, str, ##args)
+#define TERMINAL_ERROR(str, args...) bsp_uart_printf(TERMINAL_PORT, TERMINAL_COLOR_RED str, ##args)
+#define TERMINAL_ERROR_BLOD(str, args...) bsp_uart_printf(TERMINAL_PORT, ANSI_BOLD_ON TERMINAL_COLOR_RED str ANSI_BOLD_OFF, ##args)
 
 static const char TERMINAL_CLEAR_ALL[] = "\033[2J\033[1H";
 static const char TERMINAL_CLEAR_LINE[] = "\033[2K\r";

@@ -5,24 +5,16 @@
 #ifndef BSP_FLASH_H
 #define BSP_FLASH_H
 
+#include <stddef.h>
 #include <stdint.h>
-
-// 使用板载 w25q64
-#define USE_EXTERNAL_FLASH
-
-typedef struct {
-    uint32_t sys_flag;
-    double imu_cali[3];
-} bsp_flash_data_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void bsp_flash_init();
-void bsp_flash_read();
-uint8_t bsp_flash_write();
-bsp_flash_data_t *bsp_flash_data();
+uint8_t bsp_flash_init();
+void bsp_flash_read(const char *s, void *buf, size_t len);
+uint8_t bsp_flash_write(const char *s, void *buf, size_t len);
 
 #ifdef __cplusplus
 }

@@ -15,6 +15,9 @@
 #include "sys_signal.h"
 #include "sys_task.h"
 #include "app_conf.h"
+#include "app_sys.h"
+#include "app_sys_err.h"
+#include "easyflash.h"
 
 const char about_text[] =
 " ________  __            __       \r\n"
@@ -55,7 +58,7 @@ void fill_buf(const std::string &val) {
     for(int i = 0; i < buf.size(); i++) TERMINAL_SEND(KEY_LEFT, 3);
     TERMINAL_SEND(TERMINAL_CLEAR_BEHIND, 3);
     buf = val;
-    TERMINAL_INFO_PRINTF("%s", buf.c_str());
+    TERMINAL_INFO("%s", buf.c_str());
 }
 
 static OS::Task terminal;
@@ -105,7 +108,7 @@ bool solve() {
         return true;
     }
     // Command Not Found
-    TERMINAL_ERROR_PRINTF("command not found: %s\r\n", args[0].c_str());
+    TERMINAL_ERROR("command not found: %s\r\n", args[0].c_str());
     show_head();
     return false;
 }
@@ -186,16 +189,16 @@ void app_terminal_init() {
         [](const std::vector<std::string>& args) -> bool {
             for(const auto& i : cmd) {
                 if(cmd_brief.count(i.first))
-                    TERMINAL_INFO_PRINTF("- %s (%s)\r\n", i.first.c_str(), cmd_brief[i.first].c_str());
+                    TERMINAL_INFO("- %s (%s)\r\n", i.first.c_str(), cmd_brief[i.first].c_str());
                 else
-                    TERMINAL_INFO_PRINTF("- %s\r\n", i.first.c_str());
+                    TERMINAL_INFO("- %s\r\n", i.first.c_str());
             }
             return true;
         }
     );
     app_terminal_register_cmd("clear", "clear the console",
         [](const std::vector<std::string>& args) -> bool {
-            TERMINAL_INFO_PRINTF("%s", TERMINAL_CLEAR_ALL);
+            TERMINAL_INFO("%s", TERMINAL_CLEAR_ALL);
             return true;
         }
     );
@@ -209,7 +212,7 @@ void app_terminal_init() {
                 TERMINAL_ERROR("fuck your stupid parameters\r\n");
                 return false;
             }
-            TERMINAL_INFO_PRINTF("hello, %s!\r\n", args[1].c_str());
+            TERMINAL_INFO("hello, %s!\r\n", args[1].c_str());
             return true;
         }
     );
@@ -223,13 +226,38 @@ void app_terminal_init() {
     app_terminal_register_cmd("task", "get freertos task info",
         [](const std::vector<std::string>& args) -> bool {
             vTaskList(tmp);
-            TERMINAL_INFO_PRINTF("%s", tmp);
+            TERMINAL_INFO("%s", tmp);
             return true;
         }
     );
     app_terminal_register_cmd("about", "show about_text",
         [](const std::vector<std::string>& args) -> bool {
-            TERMINAL_INFO_PRINTF("%s", about_text);
+            TERMINAL_INFO("%s", about_text);
+            if(!app_sys_err_check(SYS_ERR_FLASH_WRONG_BRIEF))
+                TERMINAL_INFO("Brief: %s (%s)\r\n",
+                    app_sys_conf()->brief,
+                    app_sys_type_str[app_sys_conf()->type]
+                );
+            else
+                TERMINAL_ERROR_BLOD("Brief: %s (%s)\t| Err: 与 Flash 中的信息不匹配\r\n",
+                    app_sys_conf()->brief,
+                    app_sys_type_str[app_sys_conf()->type]
+                );
+            return true;
+        }
+    );
+    app_terminal_register_cmd("flash", "flash operator",
+        [](const auto& args) -> bool {
+            if(args.size() == 1) {
+                TERMINAL_INFO("usage: flash ls/clear\r\n");
+                return true;
+            }
+            if(args[1] == "ls") {
+                ef_print_env();
+            }
+            if(args[1] == "clear") {
+                ef_env_set_default();
+            }
             return true;
         }
     );
