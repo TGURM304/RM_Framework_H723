@@ -11,7 +11,7 @@
  */
 
 // Warn: 特化机器人代码前，必须修改此处
-#define ROBOT_BRIEF "DEV_ROBOT"
+#define ROBOT_BRIEF "HERO_CAUC"
 
 // 若启用，则可通过串口访问终端
 #define USE_TERMINAL
@@ -20,7 +20,7 @@
 #define TERMINAL_PLATFORM_NAME "stm32"
 
 // 【试验性功能】 若启用，则通过 Flash 检测代码类型是否一致 (判断 ROBOT_BRIEF 和 sys_type 是否相同，专治烧错代码)
-#define USE_FLASH_CHECK
+// #define USE_FLASH_CHECK
 
 #define SYS_FLASH_KEY 998244353
 
