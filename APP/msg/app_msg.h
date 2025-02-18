@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <initializer_list>
 
-#define APP_MSG_VOFA_CHANNEL_LIMIT 10
+#define APP_MSG_VOFA_CHANNEL_LIMIT 15
 
 /*!
  * 通过串口以 vofa+ justfloat 协议发送调试数据

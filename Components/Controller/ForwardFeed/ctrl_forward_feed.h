@@ -12,6 +12,7 @@ namespace Controller {
 		ForwardFeed() = default;
 		~ForwardFeed() override = default;
 
+		void clear() override { };
 		float update(float current, float target) override;
 		float update(const MotorController *motor, float target) override { return 0; }
 	};

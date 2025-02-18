@@ -23,7 +23,7 @@ namespace Controller {
 		{
 			type = "PID";
 		}
-		void clear();
+		void clear() override;
 		float update(float current, float target) override;
 		float update(const MotorController *motor, float target) override { return 0; }
 		void set_para(const double Kp, const double Ki, const double Kd, const double out_limit, const double iout_limit) {

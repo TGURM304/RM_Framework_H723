@@ -10,8 +10,15 @@ void MotorController::init() const {
 	motor_->init();
 }
 
+void MotorController::clear() {
+	for(auto &[_, controller] : pipeline_) {
+		controller->clear();
+	}
+}
+
 void MotorController::relax() {
 	if(relaxed_) return;
+	clear();
 	motor_->disable();
 	relaxed_ = true;
 }
@@ -38,6 +45,7 @@ static float calc_delta(float full, float current, float target) {
 }
 
 void MotorController::update(double target) {
+	target_ = target;
 	// Offline Detect
 	if(bsp_time_get_ms() - motor_->status.last_online_time > 500) {
 		// 500ms
@@ -49,8 +57,8 @@ void MotorController::update(double target) {
 	if(error_code & APP_MOTOR_ERROR_TIMEOUT)
 		activate(), error_code ^= APP_MOTOR_ERROR_TIMEOUT;
 
-	// Relax Mode or Error Mode
-	if(relaxed_ || error_code) return;
+	// // Relax Mode or Error Mode
+	// if(relaxed_ || error_code) return;
 
 	std::tie(speed, cur_angle_, current, torque) = std::make_tuple <double> (
 		motor_->status.speed,
@@ -68,6 +76,9 @@ void MotorController::update(double target) {
 	} else {
 		angle = cur_angle_;
 	}
+
+	// Relax Mode or Error Mode
+	if(relaxed_ || error_code) return;
 
 	auto result = static_cast <float> (target);
 

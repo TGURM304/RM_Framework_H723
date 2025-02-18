@@ -16,10 +16,10 @@ static void (*callback[E_CAN_END_DONT_REMOVE][BSP_CAN_FILTER_LIMIT]) (bsp_can_ms
 
 void bsp_can_init(bsp_can_e e, FDCAN_HandleTypeDef *h) {
     handle[e] = h;
-    HAL_FDCAN_ActivateNotification(h, FDCAN_IT_TX_FIFO_EMPTY, 0);
+    // HAL_FDCAN_ActivateNotification(h, FDCAN_IT_TX_FIFO_EMPTY, 0);
     HAL_FDCAN_ActivateNotification(h, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     HAL_FDCAN_ActivateNotification(h, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
-    HAL_FDCAN_ConfigGlobalFilter(h, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_REJECT_REMOTE);
+    HAL_FDCAN_ConfigGlobalFilter(h, FDCAN_REJECT, FDCAN_REJECT, ENABLE, ENABLE);
     // 一定要在配置完后 Start，否则若总线上有 CAN 包，设备会 BUSY。
     HAL_FDCAN_Start(h);
 }

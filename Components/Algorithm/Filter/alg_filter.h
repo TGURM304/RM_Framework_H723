@@ -6,6 +6,7 @@
 
 #include <vector>
 
+namespace Algorithm {
 // 普通的滑动窗口均值滤波
 class AverageFilter {
 public:
@@ -69,3 +70,4 @@ private:
     double a1_, a2_, b0_, b1_, b2_;
     double delay_element_1_, delay_element_2_;
 };
+}
