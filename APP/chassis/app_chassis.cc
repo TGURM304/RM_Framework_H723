@@ -98,12 +98,12 @@ void set_target(bsp_uart_e e, uint8_t *s, uint16_t l) {
 }
 
 void motor_update(double vx, double vy, double rotate) {
-	// Servo 1, rotate v = (-1, -1)
-	auto x1 = -rotate / M_SQRT2 + vx, y1 = -rotate / M_SQRT2 + vy;
+	// Servo 1, rotate v = ( 1,  1)
+	auto x1 =  rotate / M_SQRT2 + vx, y1 =  rotate / M_SQRT2 + vy;
 	// Servo 2, rotate v = ( 1, -1)
 	auto x2 =  rotate / M_SQRT2 + vx, y2 = -rotate / M_SQRT2 + vy;
-	// Servo 3, rotate v = ( 1,  1)
-	auto x3 =  rotate / M_SQRT2 + vx, y3 =  rotate / M_SQRT2 + vy;
+	// Servo 3, rotate v = (-1, -1)
+	auto x3 = -rotate / M_SQRT2 + vx, y3 = -rotate / M_SQRT2 + vy;
 	// Servo 4, rotate v = (-1,  1)
 	auto x4 = -rotate / M_SQRT2 + vx, y4 =  rotate / M_SQRT2 + vy;
 
