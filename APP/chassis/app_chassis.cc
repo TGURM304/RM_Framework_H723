@@ -4,6 +4,9 @@
 
 #include "app_chassis.h"
 
+#include <cstring>
+
+#include "alg_crc.h"
 #include "app_motor.h"
 #include "app_msg.h"
 #include "app_sys.h"
@@ -11,6 +14,7 @@
 #include "bsp_time.h"
 #include "ctrl_motor_base_pid.h"
 #include "ctrl_low_pass_filter.h"
+#include "dev_cap.h"
 #include "dev_motor_dji.h"
 #include "sys_task.h"
 
@@ -110,7 +114,15 @@ void motor_update(double vx, double vy, double rotate) {
 	sw_1.update(x1, y1); sw_2.update(x2, y2); sw_3.update(x3, y3); sw_4.update(x4, y4);
 }
 
-const auto rc = bsp_rc_data();
+unsigned int gimbal_msg_ts;
+
+app_msg_gimbal_to_chassis gimbal;
+void recv_msg_from_gimbal(bsp_uart_e e, uint8_t *s, uint16_t l) {
+	if(l == sizeof(gimbal))
+		memcpy(&gimbal, s, sizeof(gimbal)), gimbal_msg_ts = bsp_time_get_ms();
+}
+
+const auto cap = CAP::data();
 
 // 静态任务，在 CubeMX 中配置
 void app_chassis_task(void *args) {
@@ -119,12 +131,39 @@ void app_chassis_task(void *args) {
 
 	int zero_count = 0;
 	bsp_uart_set_callback(E_UART_DEBUG, set_target);
+	bsp_uart_set_callback(E_UART_485, recv_msg_from_gimbal);
 
 	double vx = 0, vy = 0, rotate = 0;
 	const double eps = 1e-7;
+	const int16_t yaw_zero_position = 266;
+
+	int count = 0;
 
 	while(true) {
-		vx = rc->rc_l[0] * 2.5, vy = rc->rc_l[1] * 2.5, rotate = rc->reserved * 2.0;
+		// app_msg_vofa_send(E_UART_DEBUG, {
+		// 	s_1.device()->angle,
+		// 	s_2.device()->angle,
+		// 	s_3.device()->angle,
+		// 	s_4.device()->angle
+		// });
+		//
+		// OS::Task::SleepMilliseconds(1);
+		//
+		// continue;
+		if(++count == 100) {
+			CAP::send(65);
+			count = 0;
+		}
+
+		if(bsp_time_get_ms() - gimbal_msg_ts < 100 and gimbal.rc_active) {
+			vx = gimbal.rc_l[0] * 2.5, vy = gimbal.rc_l[1] * 2.5, rotate = gimbal.rc_reserved * 2.0;
+		} else {
+			vx = vy = rotate = 0;
+		}
+
+		auto theta = std::atan2(vy, vx), r = std::sqrt((vx * vx) + (vy * vy));
+		theta -= ((yaw_zero_position - static_cast <int16_t> (gimbal.yaw_motor_angle) + 8192) % 8192) * M_PI / 4096;
+		vx = r * std::cos(theta), vy = r * std::sin(theta);
 
 		if(rotate == 0) rotate = eps;
 
@@ -201,10 +240,12 @@ void app_chassis_init() {
 		true
 	));
 	s_4.add_controller(std::make_unique <LowPassFilter> (100, 0.001));
-	s_1.use_degree_angle = true; s_1.encoder_zero = 1114;
-	s_2.use_degree_angle = true; s_2.encoder_zero = 1720;
-	s_3.use_degree_angle = true; s_3.encoder_zero = 1108;
-	s_4.use_degree_angle = true; s_4.encoder_zero =  478;
+	s_1.use_degree_angle = true; s_1.encoder_zero = 1031;
+	s_2.use_degree_angle = true; s_2.encoder_zero = 1638;
+	s_3.use_degree_angle = true; s_3.encoder_zero =  976;
+	s_4.use_degree_angle = true; s_4.encoder_zero =  342;
+
+	CAP::init();
 }
 
 #endif

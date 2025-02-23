@@ -67,12 +67,12 @@ void app_gimbal_shooter_update(float speed_1, float speed_2, float speed_trigger
     t_r.update(speed_trigger);
 
     app_msg_vofa_send(E_UART_DEBUG, {
-        m_1_l.speed,
-        m_1_m.speed,
-        m_1_r.speed,
+        std::abs(m_1_l.speed),
+        std::abs(m_1_m.speed),
+        std::abs(m_1_r.speed),
         std::max(std::abs(m_1_l.speed), std::max(std::abs(m_1_m.speed), std::abs(m_1_r.speed))) - std::min(std::abs(m_1_l.speed), std::min(std::abs(m_1_m.speed), std::abs(m_1_r.speed))),
-        m_2_l.speed,
-        m_2_r.speed,
+        std::abs(m_2_l.speed),
+        std::abs(m_2_r.speed),
         std::abs(std::abs(m_2_l.speed) - std::abs(m_2_r.speed))
     });
 }

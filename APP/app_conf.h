@@ -25,7 +25,7 @@
 #define SYS_FLASH_KEY 998244353
 
 // 底盘
-// #define COMPILE_CHASSIS
+#define COMPILE_CHASSIS
 
 // 云台
 // #define COMPILE_GIMBAL

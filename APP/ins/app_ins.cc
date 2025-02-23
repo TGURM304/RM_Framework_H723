@@ -13,6 +13,7 @@
 #include "bsp_def.h"
 #include "bsp_uart.h"
 #include "bsp_flash.h"
+#include "bsp_time.h"
 #include "sys_task.h"
 #include "tim.h"
 
@@ -155,6 +156,7 @@ void app_ins_task(void *args) {
 				data.raw.accel[0], data.raw.accel[1], data.raw.accel[2]
 			);
 			std::tie(data.roll, data.pitch, data.yaw) = IMU_QuaternionEKF_Data();
+			data.timestamp = bsp_time_get_ms();
 		}
 		if(ins_flag == 0) {
 			if(count) {

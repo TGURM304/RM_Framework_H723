@@ -20,6 +20,7 @@ typedef enum {
     E_UART_RC,
     E_UART_VISION,
     E_UART_CDC,   // USB CDC
+    E_UART_485,
     E_UART_END
 } bsp_uart_e;
 
