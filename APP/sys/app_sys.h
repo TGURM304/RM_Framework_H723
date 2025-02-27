@@ -11,9 +11,9 @@
 bool app_sys_ready();
 
 struct app_sys_flash_t {
-    int flag = 0;
+    int flag       = 0;
     char brief[32] = "";
-    int type = 0;
+    int type       = 0;
 } __attribute__((__packed__));
 
 struct app_sys_conf_t {

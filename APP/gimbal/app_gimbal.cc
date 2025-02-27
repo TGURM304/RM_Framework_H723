@@ -12,7 +12,8 @@
 // 静态任务，在 CubeMX 中配置
 void app_gimbal_task(void *args) {
     // Wait for system init.
-    while(!app_sys_ready()) OS::Task::SleepMilliseconds(10);
+    while(!app_sys_ready())
+        OS::Task::SleepMilliseconds(10);
 
     while(true) {
         OS::Task::SleepMilliseconds(1);

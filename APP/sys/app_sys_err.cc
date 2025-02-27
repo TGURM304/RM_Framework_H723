@@ -5,7 +5,7 @@
 #include "app_sys_err.h"
 #include <bitset>
 
-std::bitset <SYS_ERR_SIZE> errors;
+std::bitset<SYS_ERR_SIZE> errors;
 
 bool app_sys_err() {
     return errors.any();
