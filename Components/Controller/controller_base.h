@@ -13,6 +13,7 @@ namespace Controller {
 	public:
 		std::string type;
 		virtual ~Base() = default;
+		virtual void clear() = 0;
 		virtual float update(float current, float target) = 0;
 		virtual float update(const MotorController *motor, float target) = 0;
 	};

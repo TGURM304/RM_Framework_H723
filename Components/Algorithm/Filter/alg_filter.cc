@@ -6,6 +6,8 @@
 
 #include <cmath>
 
+using namespace Algorithm;
+
 AverageFilter::AverageFilter(int size) : size_(size), ptr_(0), sum_(0) {
     data_.resize(size);
 }

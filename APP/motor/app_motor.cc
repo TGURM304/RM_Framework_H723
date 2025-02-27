@@ -10,16 +10,25 @@ void MotorController::init() const {
 	motor_->init();
 }
 
-void MotorController::relax() {
+void MotorController::clear() {
+	for(auto &[_, controller] : pipeline_) {
+		controller->clear();
+	}
+}
+
+void MotorController::relax(bool force) {
+	force_relaxed_ |= force;
 	if(relaxed_) return;
+	clear();
 	motor_->disable();
 	relaxed_ = true;
 }
 
-void MotorController::activate() {
+void MotorController::activate(bool force) {
 	if(!relaxed_) return;
+	if(force_relaxed_ and !force) return;
 	motor_->enable();
-	relaxed_ = false;
+	relaxed_ = force_relaxed_ = false;
 }
 
 // Convert encoder val to degree.
@@ -38,19 +47,44 @@ static float calc_delta(float full, float current, float target) {
 }
 
 void MotorController::update(double target) {
+	target_ = target;
 	// Offline Detect
 	if(bsp_time_get_ms() - motor_->status.last_online_time > 500) {
 		// 500ms
-		relax();
+		relax(false);
 		error_code |= APP_MOTOR_ERROR_TIMEOUT;
 		return;
 	}
 
 	if(error_code & APP_MOTOR_ERROR_TIMEOUT)
-		activate(), error_code ^= APP_MOTOR_ERROR_TIMEOUT;
+		activate(false), error_code ^= APP_MOTOR_ERROR_TIMEOUT;
 
-	// Relax Mode or Error Mode
-	if(relaxed_ || error_code) return;
+	if(use_stall_detect) {
+		if(error_code & APP_MOTOR_ERROR_STALL) {
+			if(std::abs(motor_->status.current < 1000)) {
+				if(++err_stall_count_ == 5 * stall_detector_time_threshold) {
+					activate(false), error_code ^= APP_MOTOR_ERROR_STALL;
+					err_stall_count_ = 0;
+				}
+			} else {
+				err_stall_count_ = 0;
+				return;
+			}
+		} else {
+			if(std::abs(motor_->status.current) > stall_detector_current_threshold) {
+				if(++err_stall_count_ == stall_detector_time_threshold) {
+					relax(false), error_code ^= APP_MOTOR_ERROR_STALL;
+					err_stall_count_ = 0;
+					return;
+				}
+			} else {
+				err_stall_count_ = 0;
+			}
+		}
+	}
+
+	// // Relax Mode or Error Mode
+	// if(relaxed_ || error_code) return;
 
 	std::tie(speed, cur_angle_, current, torque) = std::make_tuple <double> (
 		motor_->status.speed,
@@ -68,6 +102,9 @@ void MotorController::update(double target) {
 	} else {
 		angle = cur_angle_;
 	}
+
+	// Relax Mode or Error Mode
+	if(relaxed_ || error_code) return;
 
 	auto result = static_cast <float> (target);
 
