@@ -16,22 +16,23 @@
 extern "C" {
 #endif
 
-__attribute__((unused)) static void bsp_assert_err(const char* file, uint32_t line) {
-    UNUSED(file); UNUSED(line);
+__attribute__((unused)) static void bsp_assert_err(const char *file, uint32_t line) {
+    UNUSED(file);
+    UNUSED(line);
     // 开启 rtos 调度锁，强行停止其他任务，便于调试。
     vTaskSuspendAll();
     bsp_led_set(255, 0, 0);
-    while(1) __NOP();
+    while(1)
+        __NOP();
 }
 
-#define BSP_ASSERT(arg)                         \
-	do {                                        \
-		if(!(arg))                              \
-			bsp_assert_err(__FILE__, __LINE__); \
-	} while(0)
+#define BSP_ASSERT(arg)                                                                                                \
+    do {                                                                                                               \
+        if(!(arg)) bsp_assert_err(__FILE__, __LINE__);                                                                 \
+    } while(0)
 
 typedef enum {
-    BSP_OK = 0,
+    BSP_OK  = 0,
     BSP_ERR = 1,
 } bsp_status_t;
 

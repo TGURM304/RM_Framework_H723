@@ -37,7 +37,6 @@ void bsp_uart_send(bsp_uart_e e, uint8_t *s, uint16_t l) {
         // UART
         HAL_UART_Transmit(handle[e], s, l, HAL_MAX_DELAY);
     }
-
 }
 
 void bsp_uart_printf(bsp_uart_e e, const char *fmt, ...) {
@@ -51,8 +50,7 @@ void bsp_uart_printf(bsp_uart_e e, const char *fmt, ...) {
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *h, uint16_t l) {
     for(int i = 0; i < UART_ENUM_SIZE; i++) {
         if(h == handle[i]) {
-            if(callback[i] != NULL)
-                callback[i](i, uart_rx_buf[i], l);
+            if(callback[i] != NULL) callback[i](i, uart_rx_buf[i], l);
             memset(uart_rx_buf[i], 0, sizeof(uint8_t) * l);
             HAL_UARTEx_ReceiveToIdle_DMA(h, uart_rx_buf[i], UART_BUFFER_SIZE);
             __HAL_DMA_DISABLE_IT(h->hdmarx, DMA_IT_HT);
@@ -61,7 +59,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *h, uint16_t l) {
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *h) {
-    for (int i = 0; i < UART_ENUM_SIZE; i++) {
+    for(int i = 0; i < UART_ENUM_SIZE; i++) {
         if(handle[i] == NULL) continue;
         if(h == handle[i]) {
             HAL_UARTEx_ReceiveToIdle_DMA(h, uart_rx_buf[i], UART_BUFFER_SIZE);
@@ -72,6 +70,5 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *h) {
 }
 
 void usb_cdc_callback(uint8_t *s, uint16_t l) {
-    if(callback[E_UART_CDC] != NULL)
-        callback[E_UART_CDC](E_UART_CDC, s, l);
+    if(callback[E_UART_CDC] != NULL) callback[E_UART_CDC](E_UART_CDC, s, l);
 }

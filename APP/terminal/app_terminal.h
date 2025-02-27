@@ -11,8 +11,8 @@
 #define TERMINAL_PORT E_UART_DEBUG
 
 #define ANSI_CSI(code) "\033[" #code "m" /* ANSI CSI指令 */
-#define ANSI_BOLD_ON      "\x1b[1m"
-#define ANSI_BOLD_OFF     "\x1b[22m"
+#define ANSI_BOLD_ON "\x1b[1m"
+#define ANSI_BOLD_OFF "\x1b[22m"
 
 /**
  * 终端字体颜色代码
@@ -35,18 +35,18 @@
 #define TERMINAL_COLOR_WHITE_L ANSI_CSI(97)   /* 亮白 */
 #define TERMINAL_COLOR_DEFAULT ANSI_CSI(39)   /* 默认 */
 
-#define TERMINAL_SEND(val, sz) bsp_uart_send(TERMINAL_PORT, (uint8_t *) val, sz)
+#define TERMINAL_SEND(val, sz) bsp_uart_send(TERMINAL_PORT, (uint8_t *)val, sz)
 #define TERMINAL_INFO(str, args...) bsp_uart_printf(TERMINAL_PORT, str, ##args)
 #define TERMINAL_ERROR(str, args...) bsp_uart_printf(TERMINAL_PORT, TERMINAL_COLOR_RED str, ##args)
 #define TERMINAL_ERROR_BLOD(str, args...) bsp_uart_printf(TERMINAL_PORT, ANSI_BOLD_ON TERMINAL_COLOR_RED str ANSI_BOLD_OFF, ##args)
 
 static const char TERMINAL_CLEAR_ALL[] = "\033[2J\033[1H";
-static const char TERMINAL_CLEAR_LINE[] = "\033[2K\r";
+static const char TERMINAL_CLEAR_LINE[]   = "\033[2K\r";
 static const char TERMINAL_CLEAR_BEHIND[] = "\033[K";
-static const char KEY_RIGHT[] = "\033[C";
-static const char KEY_LEFT[] = "\033[D";
-static const char KEY_SAVE[] = "\033[s";
-static const char KEY_LOAD[] = "\033[u";
+static const char KEY_RIGHT[]             = "\033[C";
+static const char KEY_LEFT[]              = "\033[D";
+static const char KEY_SAVE[]              = "\033[s";
+static const char KEY_LOAD[]              = "\033[u";
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +57,8 @@ extern "C" {
 #endif
 
 void app_terminal_init();
-void app_terminal_register_cmd(const std::string& name, const std::function <bool(std::vector<std::string>)>& func);
-void app_terminal_register_cmd(const std::string& name, const std::string &brief, const std::function <bool(std::vector<std::string>)>& func);
-bool* app_terminal_running_flag();
+void app_terminal_register_cmd(const std::string &name, const std::function<bool(std::vector<std::string>)> &func);
+void app_terminal_register_cmd(const std::string &name,
+                               const std::string &brief,
+                               const std::function<bool(std::vector<std::string>)> &func);
+bool *app_terminal_running_flag();

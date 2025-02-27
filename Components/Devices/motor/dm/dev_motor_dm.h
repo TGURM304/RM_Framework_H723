@@ -45,7 +45,8 @@ namespace Motor {
             uint8_t id, err;
             uint16_t pos;
             uint16_t vel;
-            uint8_t t, t_mos, t_rotor;
+            uint16_t t;
+            uint8_t t_mos, t_rotor;
         };
 
         Status status = { 0 };

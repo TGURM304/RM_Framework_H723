@@ -43,7 +43,7 @@ const app_sys_conf_t *app_sys_conf() {
 }
 
 void app_sys_terminal_init() {
-    app_terminal_register_cmd("sys", "system commands", [](const auto& args) -> bool {
+    app_terminal_register_cmd("sys", "system commands", [](const auto &args) -> bool {
         if(args.size() == 1) {
             TERMINAL_INFO("usage: sys vbus");
             return true;
@@ -95,7 +95,8 @@ void app_sys_task() {
     bsp_led_set(0, 0, 255);
     app_sys_init();
     bsp_led_set(0, 255, 0);
-    while(app_ins_status() != 2) OS::Task::SleepMilliseconds(1);
+    while(app_ins_status() != 2)
+        OS::Task::SleepMilliseconds(1);
     if(!app_sys_err()) {
         bsp_buzzer_flash(1976, 0.5, 125);
         OS::Task::SleepMilliseconds(50);
@@ -112,8 +113,7 @@ void app_sys_task() {
             OS::Task::SleepMilliseconds(10);
         } else {
             // FLASH 描述符错误，黄灯快闪
-            if(app_sys_err_check(SYS_ERR_FLASH_WRONG_BRIEF))
-                bsp_led_set(50, 50, 0);
+            if(app_sys_err_check(SYS_ERR_FLASH_WRONG_BRIEF)) bsp_led_set(50, 50, 0);
             OS::Task::SleepMilliseconds(100);
             bsp_led_set(0, 0, 0);
             OS::Task::SleepMilliseconds(100);
@@ -129,18 +129,18 @@ void app_sys_task() {
  *  - 若不理解下面的代码是什么意思，请不要随意修改。
  */
 
-__weak void app_chassis_task(void* argument) {
+__weak void app_chassis_task(void *argument) {
     OS::Task::Current().Delete();
 }
 
-__weak void app_gimbal_task(void* argument) {
+__weak void app_gimbal_task(void *argument) {
     OS::Task::Current().Delete();
 }
 
-__weak void dev_dji_motor_task(void* argument) {
+__weak void dev_dji_motor_task(void *argument) {
     OS::Task::Current().Delete();
 }
 
-__weak void app_ins_task(void* argument) {
+__weak void app_ins_task(void *argument) {
     OS::Task::Current().Delete();
 }

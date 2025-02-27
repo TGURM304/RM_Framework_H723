@@ -19,43 +19,44 @@
 #include "app_sys_err.h"
 #include "easyflash.h"
 
-const char about_text[] =
-" ________  __            __       \r\n"
-"/        |/  |          /  |      \r\n"
-"$$$$$$$$/ $$/   _______ $$ |____  \r\n"
-"$$ |__    /  | /       |$$      \\ \r\n"
-"$$    |   $$ |/$$$$$$$/ $$$$$$$  |\r\n"
-"$$$$$/    $$ |$$      \\ $$ |  $$ |\r\n"
-"$$ |      $$ | $$$$$$  |$$ |  $$ |\r\n"
-"$$ |      $$ |/     $$/ $$ |  $$ |\r\n"
-"$$/       $$/ $$$$$$$/  $$/   $$/ \r\n"
-"\r\n"
-"Build: " __DATE__ " " __TIME__ " \r\n";
+const char about_text[] = " ________  __            __       \r\n"
+                          "/        |/  |          /  |      \r\n"
+                          "$$$$$$$$/ $$/   _______ $$ |____  \r\n"
+                          "$$ |__    /  | /       |$$      \\ \r\n"
+                          "$$    |   $$ |/$$$$$$$/ $$$$$$$  |\r\n"
+                          "$$$$$/    $$ |$$      \\ $$ |  $$ |\r\n"
+                          "$$ |      $$ | $$$$$$  |$$ |  $$ |\r\n"
+                          "$$ |      $$ |/     $$/ $$ |  $$ |\r\n"
+                          "$$/       $$/ $$$$$$$/  $$/   $$/ \r\n"
+                          "\r\n"
+                          "Build: " __DATE__ " " __TIME__ " \r\n";
 
 char tmp[1024];
 std::string buf;
-std::map <std::string, std::function <bool(std::vector<std::string>)>> cmd;
-std::map <std::string, std::string> cmd_brief;
+std::map<std::string, std::function<bool(std::vector<std::string>)>> cmd;
+std::map<std::string, std::string> cmd_brief;
 
 #define TERMINAL_CMD_MEM_SIZE 100
 std::string cmd_mem[TERMINAL_CMD_MEM_SIZE];
 int mem_ptr = 0, mem_cur_ptr = 0;
 
 bool running = false, result = false, force_stop = false;
-std::pair <std::function<bool(std::vector<std::string>)>, std::vector <std::string>> runtime;
+std::pair<std::function<bool(std::vector<std::string>)>, std::vector<std::string>> runtime;
 
 void show_head() {
-    bsp_uart_printf(TERMINAL_PORT, "%s%s@%s:%s%s%s$\e[00m ",
-        TERMINAL_COLOR_GREEN,
-        TERMINAL_USER_NAME, TERMINAL_PLATFORM_NAME,
-        TERMINAL_COLOR_BLUE,
-        "~",
-        TERMINAL_COLOR_GREEN
-    );
+    bsp_uart_printf(TERMINAL_PORT,
+                    "%s%s@%s:%s%s%s$\e[00m ",
+                    TERMINAL_COLOR_GREEN,
+                    TERMINAL_USER_NAME,
+                    TERMINAL_PLATFORM_NAME,
+                    TERMINAL_COLOR_BLUE,
+                    "~",
+                    TERMINAL_COLOR_GREEN);
 }
 
 void fill_buf(const std::string &val) {
-    for(int i = 0; i < buf.size(); i++) TERMINAL_SEND(KEY_LEFT, 3);
+    for(int i = 0; i < buf.size(); i++)
+        TERMINAL_SEND(KEY_LEFT, 3);
     TERMINAL_SEND(TERMINAL_CLEAR_BEHIND, 3);
     buf = val;
     TERMINAL_INFO("%s", buf.c_str());
@@ -82,13 +83,14 @@ bool solve() {
         show_head();
         return true;
     }
-    std::vector <std::string> args;
+    std::vector<std::string> args;
     int p = 0;
     for(int i = 0; i < buf.length() and p < buf.length(); i++) {
         if(buf[i] == ' ') {
             args.emplace_back(buf.substr(p, i - p));
             p = i + 1;
-            while(p < buf.length() and buf[p] == ' ') p ++;
+            while(p < buf.length() and buf[p] == ' ')
+                p++;
         }
     }
     args.emplace_back(buf.substr(p));
@@ -100,7 +102,7 @@ bool solve() {
         mem_ptr = 0;
         if(cmd_mem[(mem_cur_ptr - 1) % TERMINAL_CMD_MEM_SIZE] != buf) {
             cmd_mem[mem_cur_ptr] = buf;
-            mem_cur_ptr = (mem_cur_ptr + 1) % TERMINAL_CMD_MEM_SIZE;
+            mem_cur_ptr          = (mem_cur_ptr + 1) % TERMINAL_CMD_MEM_SIZE;
         }
 
         running = true, result = false;
@@ -115,7 +117,7 @@ bool solve() {
 
 void stop_running_task() {
     if(running) {
-        running = false;
+        running    = false;
         force_stop = true;
         OS::Signal::action(terminal, 0);
     }
@@ -132,7 +134,8 @@ void input(char c) {
 
     if(c == '\r' or c == '\n') {
         bsp_uart_printf(TERMINAL_PORT, "\r\n");
-        while(!buf.empty() and buf.back() == ' ') buf.pop_back();
+        while(!buf.empty() and buf.back() == ' ')
+            buf.pop_back();
         solve();
         buf.clear();
         return;
@@ -151,7 +154,7 @@ void input(char c) {
     }
 
     if(('a' <= c and c <= 'z') or ('0' <= c and c <= '9') or c == ' ' or ('A' <= c and c <= 'Z')) {
-        bsp_uart_send(TERMINAL_PORT, reinterpret_cast <uint8_t *> (&c), 1);
+        bsp_uart_send(TERMINAL_PORT, reinterpret_cast<uint8_t *>(&c), 1);
         buf.push_back(c);
     }
 
@@ -166,7 +169,7 @@ void recv(bsp_uart_e e, uint8_t *s, uint16_t l) {
             if(!cmd_mem[(mem_cur_ptr - mem_ptr + TERMINAL_CMD_MEM_SIZE) % TERMINAL_CMD_MEM_SIZE].empty()) {
                 fill_buf(cmd_mem[(mem_cur_ptr - mem_ptr + TERMINAL_CMD_MEM_SIZE) % TERMINAL_CMD_MEM_SIZE]);
             } else {
-                mem_ptr --;
+                mem_ptr--;
             }
         }
         if(s[2] == 66) {
@@ -175,107 +178,90 @@ void recv(bsp_uart_e e, uint8_t *s, uint16_t l) {
             if(!cmd_mem[(mem_cur_ptr - mem_ptr + TERMINAL_CMD_MEM_SIZE) % TERMINAL_CMD_MEM_SIZE].empty()) {
                 fill_buf(cmd_mem[(mem_cur_ptr - mem_ptr + TERMINAL_CMD_MEM_SIZE) % TERMINAL_CMD_MEM_SIZE]);
             } else {
-                mem_ptr ++;
+                mem_ptr++;
             }
         }
         return;
     }
-    for(int i = 0; i < l; i++) input(s[i]);
+    for(int i = 0; i < l; i++)
+        input(s[i]);
 }
 
 void app_terminal_init() {
     bsp_uart_set_callback(TERMINAL_PORT, recv);
-    app_terminal_register_cmd("help", "show commands",
-        [](const std::vector<std::string>& args) -> bool {
-            for(const auto& i : cmd) {
-                if(cmd_brief.count(i.first))
-                    TERMINAL_INFO("- %s (%s)\r\n", i.first.c_str(), cmd_brief[i.first].c_str());
-                else
-                    TERMINAL_INFO("- %s\r\n", i.first.c_str());
-            }
+    app_terminal_register_cmd("help", "show commands", [](const std::vector<std::string> &args) -> bool {
+        for(const auto &i : cmd) {
+            if(cmd_brief.count(i.first)) TERMINAL_INFO("- %s (%s)\r\n", i.first.c_str(), cmd_brief[i.first].c_str());
+            else TERMINAL_INFO("- %s\r\n", i.first.c_str());
+        }
+        return true;
+    });
+    app_terminal_register_cmd("clear", "clear the console", [](const std::vector<std::string> &args) -> bool {
+        TERMINAL_INFO("%s", TERMINAL_CLEAR_ALL);
+        return true;
+    });
+    app_terminal_register_cmd("hello", "test command", [](const std::vector<std::string> &args) -> bool {
+        if(args.size() == 1) {
+            TERMINAL_INFO("usage: hello <name>\r\n");
             return true;
         }
-    );
-    app_terminal_register_cmd("clear", "clear the console",
-        [](const std::vector<std::string>& args) -> bool {
-            TERMINAL_INFO("%s", TERMINAL_CLEAR_ALL);
+        if(args.size() > 2) {
+            TERMINAL_ERROR("fuck your stupid parameters\r\n");
+            return false;
+        }
+        TERMINAL_INFO("hello, %s!\r\n", args[1].c_str());
+        return true;
+    });
+    app_terminal_register_cmd("reboot", "reboot system", [](const std::vector<std::string> &args) -> bool {
+        TERMINAL_INFO("system reboot\r\n");
+        bsp_sys_reset();
+        return true;
+    });
+    app_terminal_register_cmd("task", "get freertos task info", [](const std::vector<std::string> &args) -> bool {
+        vTaskList(tmp);
+        TERMINAL_INFO("%s", tmp);
+        return true;
+    });
+    app_terminal_register_cmd("about", "show about_text", [](const std::vector<std::string> &args) -> bool {
+        TERMINAL_INFO("%s", about_text);
+        if(!app_sys_err_check(SYS_ERR_FLASH_WRONG_BRIEF))
+            TERMINAL_INFO("Brief: %s (%s)\r\n", app_sys_conf()->brief, app_sys_type_str[app_sys_conf()->type]);
+        else
+            TERMINAL_ERROR_BLOD("Brief: %s (%s)\t| Err: 与 Flash 中的信息不匹配\r\n",
+                                app_sys_conf()->brief,
+                                app_sys_type_str[app_sys_conf()->type]);
+        return true;
+    });
+    app_terminal_register_cmd("flash", "flash operator", [](const auto &args) -> bool {
+        if(args.size() == 1) {
+            TERMINAL_INFO("usage: flash ls/clear\r\n");
             return true;
         }
-    );
-    app_terminal_register_cmd("hello", "test command",
-        [](const std::vector<std::string>& args) -> bool {
-            if(args.size() == 1) {
-                TERMINAL_INFO("usage: hello <name>\r\n");
-                return true;
-            }
-            if(args.size() > 2) {
-                TERMINAL_ERROR("fuck your stupid parameters\r\n");
-                return false;
-            }
-            TERMINAL_INFO("hello, %s!\r\n", args[1].c_str());
-            return true;
+        if(args[1] == "ls") {
+            ef_print_env();
         }
-    );
-    app_terminal_register_cmd("reboot", "reboot system",
-        [](const std::vector<std::string>& args) -> bool {
-            TERMINAL_INFO("system reboot\r\n");
-            bsp_sys_reset();
-            return true;
+        if(args[1] == "clear") {
+            ef_env_set_default();
         }
-    );
-    app_terminal_register_cmd("task", "get freertos task info",
-        [](const std::vector<std::string>& args) -> bool {
-            vTaskList(tmp);
-            TERMINAL_INFO("%s", tmp);
-            return true;
-        }
-    );
-    app_terminal_register_cmd("about", "show about_text",
-        [](const std::vector<std::string>& args) -> bool {
-            TERMINAL_INFO("%s", about_text);
-            if(!app_sys_err_check(SYS_ERR_FLASH_WRONG_BRIEF))
-                TERMINAL_INFO("Brief: %s (%s)\r\n",
-                    app_sys_conf()->brief,
-                    app_sys_type_str[app_sys_conf()->type]
-                );
-            else
-                TERMINAL_ERROR_BLOD("Brief: %s (%s)\t| Err: 与 Flash 中的信息不匹配\r\n",
-                    app_sys_conf()->brief,
-                    app_sys_type_str[app_sys_conf()->type]
-                );
-            return true;
-        }
-    );
-    app_terminal_register_cmd("flash", "flash operator",
-        [](const auto& args) -> bool {
-            if(args.size() == 1) {
-                TERMINAL_INFO("usage: flash ls/clear\r\n");
-                return true;
-            }
-            if(args[1] == "ls") {
-                ef_print_env();
-            }
-            if(args[1] == "clear") {
-                ef_env_set_default();
-            }
-            return true;
-        }
-    );
+        return true;
+    });
 
-    terminal.Create(terminal_task, static_cast <void *> (nullptr), "terminal", 512, OS::Task::MEDIUM);
+    terminal.Create(terminal_task, static_cast<void *>(nullptr), "terminal", 512, OS::Task::MEDIUM);
 }
 
-void app_terminal_register_cmd(const std::string& name, const std::function <bool(std::vector<std::string>)>& func) {
+void app_terminal_register_cmd(const std::string &name, const std::function<bool(std::vector<std::string>)> &func) {
     BSP_ASSERT(cmd.count(name) == 0);
     cmd[name] = func;
 }
 
-void app_terminal_register_cmd(const std::string& name, const std::string& brief, const std::function <bool(std::vector<std::string>)>& func) {
+void app_terminal_register_cmd(const std::string &name,
+                               const std::string &brief,
+                               const std::function<bool(std::vector<std::string>)> &func) {
     BSP_ASSERT(cmd.count(name) == 0);
-    cmd[name] = func;
+    cmd[name]       = func;
     cmd_brief[name] = brief;
 }
 
-bool* app_terminal_running_flag() {
+bool *app_terminal_running_flag() {
     return &running;
 }
