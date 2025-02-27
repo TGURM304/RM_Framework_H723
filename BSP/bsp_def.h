@@ -23,7 +23,12 @@ __attribute__((unused)) static void bsp_assert_err(const char* file, uint32_t li
     bsp_led_set(255, 0, 0);
     while(1) __NOP();
 }
-#define BSP_ASSERT(arg) if(!(arg)) bsp_assert_err(__FILE__, __LINE__);
+
+#define BSP_ASSERT(arg)                         \
+	do {                                        \
+		if(!(arg))                              \
+			bsp_assert_err(__FILE__, __LINE__); \
+	} while(0)
 
 typedef enum {
     BSP_OK = 0,
