@@ -38,13 +38,9 @@ static constexpr uint16_t CRC16_TAB[] = {
 
 uint16_t CRC16::calc(const uint8_t* buf, unsigned len, uint16_t crc) {
     for(unsigned i = 0; i < len; i++) {
-        crc = (crc >> 8) ^ CRC16_TAB[(crc ^ buf[i]) & 0xff];
+        crc = ((crc >> 8) & 0xff) ^ CRC16_TAB[(crc ^ buf[i]) & 0xff];
     }
     return crc;
-}
-
-bool CRC16::verify(const uint8_t* buf, unsigned len, uint16_t crc) {
-    return crc == calc(buf, len);
 }
 
 static constexpr uint8_t CRC8_TAB[] = {
@@ -77,9 +73,5 @@ uint8_t CRC8::calc(const uint8_t* buf, unsigned len, uint8_t crc) {
         crc = CRC8_TAB[(crc ^ buf[i]) & 0xff];
     }
     return crc;
-}
-
-bool CRC8::verify(const uint8_t* buf, unsigned len, uint8_t crc) {
-    return crc == calc(buf, len);
 }
 

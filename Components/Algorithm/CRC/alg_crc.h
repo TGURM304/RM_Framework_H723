@@ -13,15 +13,14 @@ namespace CRC16 {
     uint16_t calc(const T& res) {
         return calc(reinterpret_cast <const uint8_t *> (&res), sizeof(T) - offset);
     }
-    bool verify(const uint8_t *buf, unsigned len, uint16_t crc);
     template <typename T>
-    uint16_t verify(const T& res) {
+    bool verify(const T& res) {
         if(sizeof(T) < offset) return false;
-        return calc(res) == *reinterpret_cast <const uint16_t *>(&res + sizeof(T) - offset);
+        return *reinterpret_cast <const uint16_t *> (reinterpret_cast <const uint8_t *> (&res) + sizeof(T) - offset) == calc(res);
     }
     template <typename T>
     void append(T& res) {
-        *reinterpret_cast <uint16_t *> (&res + sizeof(T) - offset) = calc(res);
+        *reinterpret_cast <uint16_t *> (reinterpret_cast <uint8_t *> (&res) + sizeof(T) - offset) = calc(res);
     }
 }
 
@@ -32,14 +31,13 @@ namespace CRC8 {
     uint8_t calc(const T& res) {
         return calc(reinterpret_cast <const uint8_t *> (&res), sizeof(T) - offset);
     }
-    bool verify(const uint8_t *buf, unsigned len, uint8_t crc);
     template <typename T>
     uint8_t verify(const T& res) {
         if(sizeof(T) < offset) return false;
-        return calc(res) == *reinterpret_cast <const uint8_t *>(&res + sizeof(T) - offset);
+        return *(reinterpret_cast <const uint8_t *> (&res) + sizeof(T) - offset) == calc(res);
     }
     template <typename T>
     void append(T& res) {
-        *reinterpret_cast <uint8_t *> (&res + sizeof(T) - offset) = calc(res);
+        *(reinterpret_cast <uint8_t *> (&res) + sizeof(T) - offset) = calc(res);
     }
 }
