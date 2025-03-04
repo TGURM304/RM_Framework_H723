@@ -4,6 +4,7 @@
 
 #include "bsp_time.h"
 
+
 uint32_t bsp_time_get_ms() {
     return xTaskGetTickCount();
 }
@@ -18,4 +19,6 @@ uint64_t bsp_time_get_us() {
         ms_now * 1000 + 1000 - tick_val_now * 1000 / (SysTick->LOAD + 1);
 }
 
-uint64_t bsp_time_get() __attribute__((alias("bsp_time_get_us")));
+bool bsp_time_valid(unsigned int ts, unsigned int timeout) {
+    return bsp_time_get_ms() - ts <= timeout;
+}
