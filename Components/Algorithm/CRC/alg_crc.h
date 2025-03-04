@@ -13,6 +13,10 @@ namespace CRC16 {
     uint16_t calc(const T& res) {
         return calc(reinterpret_cast <const uint8_t *> (&res), sizeof(T) - offset);
     }
+    inline bool verify(const uint8_t *res, unsigned len) {
+        if(len < offset) return false;
+        return *reinterpret_cast<const uint16_t *>(res + len - offset) == calc(res, len - offset);
+    }
     template <typename T>
     bool verify(const T& res) {
         if(sizeof(T) < offset) return false;
@@ -27,12 +31,15 @@ namespace CRC16 {
 namespace CRC8 {
     static constexpr unsigned offset = sizeof(uint8_t);
     uint8_t calc(const uint8_t *buf, unsigned len, uint8_t crc = 0xff);
-    template <typename T>
-    uint8_t calc(const T& res) {
-        return calc(reinterpret_cast <const uint8_t *> (&res), sizeof(T) - offset);
+    template <typename T> uint8_t calc(const T &res) {
+        return calc(reinterpret_cast<const uint8_t *>(&res), sizeof(T) - offset);
+    }
+    inline bool verify(const uint8_t *res, unsigned len) {
+        if(len < offset) return false;
+        return *(res + len - offset) == calc(res, len - offset);
     }
     template <typename T>
-    uint8_t verify(const T& res) {
+    bool verify(const T& res) {
         if(sizeof(T) < offset) return false;
         return *(reinterpret_cast <const uint8_t *> (&res) + sizeof(T) - offset) == calc(res);
     }
