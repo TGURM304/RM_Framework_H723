@@ -66,15 +66,15 @@ void app_gimbal_shooter_update(float speed_1, float speed_2, float speed_trigger
     t_l.update(speed_trigger);
     t_r.update(speed_trigger);
 
-    app_msg_vofa_send(E_UART_DEBUG, {
-        std::abs(m_1_l.speed),
-        std::abs(m_1_m.speed),
-        std::abs(m_1_r.speed),
-        std::max(std::abs(m_1_l.speed), std::max(std::abs(m_1_m.speed), std::abs(m_1_r.speed))) - std::min(std::abs(m_1_l.speed), std::min(std::abs(m_1_m.speed), std::abs(m_1_r.speed))),
-        std::abs(m_2_l.speed),
-        std::abs(m_2_r.speed),
-        std::abs(std::abs(m_2_l.speed) - std::abs(m_2_r.speed))
-    });
+    // app_msg_vofa_send(E_UART_DEBUG, {
+    //     std::abs(m_1_l.speed),
+    //     std::abs(m_1_m.speed),
+    //     std::abs(m_1_r.speed),
+    //     std::max(std::abs(m_1_l.speed), std::max(std::abs(m_1_m.speed), std::abs(m_1_r.speed))) - std::min(std::abs(m_1_l.speed), std::min(std::abs(m_1_m.speed), std::abs(m_1_r.speed))),
+    //     std::abs(m_2_l.speed),
+    //     std::abs(m_2_r.speed),
+    //     std::abs(std::abs(m_2_l.speed) - std::abs(m_2_r.speed))
+    // });
 }
 
 void app_gimbal_shooter_init() {
@@ -108,13 +108,13 @@ void app_gimbal_shooter_init() {
         [](auto x) -> double { return x->device()->speed; },
         std::make_unique <PID> (10.0, 1.0, 0.0, 16384, 10000)
     );
-    t_l.use_stall_detect = true; t_l.stall_detector_time_threshold = 100; t_l.stall_detector_current_threshold = 11000;
+    t_l.use_stall_detect = true; t_l.stall_detector_time_threshold = 350; t_l.stall_detector_current_threshold = 13800;
     t_r.init();
     t_r.add_controller(
         [](auto x) -> double { return x->device()->speed; },
         std::make_unique <PID> (10.0, 1.0, 0.0, 16384, 10000)
     );
-    t_r.use_stall_detect = true; t_r.stall_detector_time_threshold = 100; t_r.stall_detector_current_threshold = 11000;
+    t_r.use_stall_detect = true; t_r.stall_detector_time_threshold = 350; t_r.stall_detector_current_threshold = 13800;
 }
 
 #endif

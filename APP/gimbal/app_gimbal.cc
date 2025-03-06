@@ -53,13 +53,11 @@ void set_target(bsp_uart_e e, uint8_t *s, uint16_t l) {
 void send_msg_to_chassis() {
     app_msg_gimbal_to_chassis data = {
         .yaw_motor_angle = yaw.device()->angle,
-        .rc_reserved = rc->reserved,
+        // .rc_reserved = rc->reserved,
         .rc_active = bsp_time_get_ms() - rc->timestamp < 100
         // .rc_active = false
     };
     memcpy(data.rc_l, rc->rc_l, sizeof(rc->rc_l));
-    data.rc_reserved *= 2;
-    data.rc_l[0] *= 2, data.rc_l[1] *= 2;
     bsp_uart_send(E_UART_485, reinterpret_cast <uint8_t *> (&data), sizeof(data));
 }
 
@@ -70,12 +68,23 @@ void app_gimbal_task(void *args) {
 
     bsp_uart_set_callback(E_UART_DEBUG, set_target);
 
+    while(!yaw.device()->last_online_time) OS::Task::SleepMilliseconds(10);
+    OS::Task::SleepMilliseconds(500);
+    yaw_target = calc_delta(8192, 0, yaw.device()->angle);
+
     while(true) {
 #ifdef USE_DUAL_CONTROLLER
         send_msg_to_chassis();
 #endif
-        yaw_sum_angle += calc_delta(360, yaw_lst_angle, ins->yaw);
-        yaw_lst_angle = ins->yaw;
+        app_msg_vofa_send(E_UART_DEBUG, {
+            yaw_target,
+            yaw_sum_angle,
+            yaw.device()->current,
+        });
+        // yaw_sum_angle += calc_delta(360, yaw_lst_angle, ins->yaw);
+        // yaw_lst_angle = ins->yaw;
+        yaw_sum_angle += calc_delta(8192, yaw_lst_angle, yaw.device()->angle);
+        yaw_lst_angle = yaw.device()->angle;
 
         if(bsp_time_get_ms() - rc->timestamp > 100) {
             pit.clear();
@@ -87,9 +96,9 @@ void app_gimbal_task(void *args) {
             continue;
         }
         if(rc->s_l == 1) {
-            app_gimbal_shooter_update(5600 + 5600 * 0.05, 4600 + 4600 * 0.05, 500);
+            app_gimbal_shooter_update(5600, 5100, 500);
         } else if (rc->s_l == 0){
-            app_gimbal_shooter_update(5600 + 5600 * 0.05, 4600 + 4600 * 0.05, 0);
+            app_gimbal_shooter_update(5600, 5100, 0);
         } else {
             app_gimbal_shooter_update(0, 0, 0);
         }
@@ -100,14 +109,16 @@ void app_gimbal_task(void *args) {
             pit.update(static_cast <float> (rc->s_r) * 10);
         }
 
-        yaw_target -= static_cast <float> (rc->rc_r[0]) / 660.0f * 0.18f;
+        // if(rc->rc_r[0])
+        //     yaw_target -= static_cast <float> (rc->rc_r[0]) / 660.0f * 0.18f;
+        // else
+        //     yaw_target -= static_cast <float> (rc->reserved) / 660.0f * 0.008f;
+        if(rc->rc_r[0])
+            yaw_target -= static_cast <float> (rc->rc_r[0]) / 660.0f * 0.18f * 8192 / 360;
+        else
+            yaw_target -= static_cast <float> (rc->reserved) / 660.0f * 0.008f * 8192 / 360;
         yaw.update(yaw_target);
 
-        // app_msg_vofa_send(E_UART_DEBUG, {
-        //     yaw_target,
-        //     yaw_sum_angle,
-        //     yaw.device()->current,
-        // });
         OS::Task::SleepMilliseconds(1);
     }
 }
@@ -127,11 +138,11 @@ void app_gimbal_init() {
 
     yaw.add_controller(
         [](const auto x) -> double { return yaw_sum_angle; },
-        std::make_unique <PID> (19, 0, 0, 360, 0)
+        std::make_unique <PID> (19 / 8192.0 * 360.0, 0, 0, 180, 0)
     );
     yaw.add_controller(
         [](const auto x) -> double { return ins->raw.gyro[2] / M_PI * 180; },
-        std::make_unique <PID> (160.0, 2.65, 0.0, 25000, 20000)
+        std::make_unique <PID> (425, 2.5, 0.0, 25000, 20000)
     );
     yaw.add_controller(
         std::make_unique <LowPassFilter> (50, 0.001)
