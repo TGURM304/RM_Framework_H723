@@ -53,7 +53,7 @@ void set_target(bsp_uart_e e, uint8_t *s, uint16_t l) {
 void send_msg_to_chassis() {
     app_msg_gimbal_to_chassis data = {
         .yaw_motor_angle = yaw.device()->angle,
-        // .rc_reserved = rc->reserved,
+        .rc_reserved = rc->reserved,
         .rc_active = bsp_time_get_ms() - rc->timestamp < 100
         // .rc_active = false
     };
@@ -68,23 +68,12 @@ void app_gimbal_task(void *args) {
 
     bsp_uart_set_callback(E_UART_DEBUG, set_target);
 
-    while(!yaw.device()->last_online_time) OS::Task::SleepMilliseconds(10);
-    OS::Task::SleepMilliseconds(500);
-    yaw_target = calc_delta(8192, 0, yaw.device()->angle);
-
     while(true) {
 #ifdef USE_DUAL_CONTROLLER
         send_msg_to_chassis();
 #endif
-        app_msg_vofa_send(E_UART_DEBUG, {
-            yaw_target,
-            yaw_sum_angle,
-            yaw.device()->current,
-        });
-        // yaw_sum_angle += calc_delta(360, yaw_lst_angle, ins->yaw);
-        // yaw_lst_angle = ins->yaw;
-        yaw_sum_angle += calc_delta(8192, yaw_lst_angle, yaw.device()->angle);
-        yaw_lst_angle = yaw.device()->angle;
+        yaw_sum_angle += calc_delta(360, yaw_lst_angle, ins->yaw);
+        yaw_lst_angle = ins->yaw;
 
         if(bsp_time_get_ms() - rc->timestamp > 100) {
             pit.clear();
@@ -109,16 +98,14 @@ void app_gimbal_task(void *args) {
             pit.update(static_cast <float> (rc->s_r) * 10);
         }
 
-        // if(rc->rc_r[0])
-        //     yaw_target -= static_cast <float> (rc->rc_r[0]) / 660.0f * 0.18f;
-        // else
-        //     yaw_target -= static_cast <float> (rc->reserved) / 660.0f * 0.008f;
-        if(rc->rc_r[0])
-            yaw_target -= static_cast <float> (rc->rc_r[0]) / 660.0f * 0.18f * 8192 / 360;
-        else
-            yaw_target -= static_cast <float> (rc->reserved) / 660.0f * 0.008f * 8192 / 360;
+        yaw_target -= static_cast <float> (rc->rc_r[0]) / 660.0f * 0.18f;
         yaw.update(yaw_target);
 
+        // app_msg_vofa_send(E_UART_DEBUG, {
+        //     yaw_target,
+        //     yaw_sum_angle,
+        //     yaw.device()->current,
+        // });
         OS::Task::SleepMilliseconds(1);
     }
 }
@@ -138,7 +125,7 @@ void app_gimbal_init() {
 
     yaw.add_controller(
         [](const auto x) -> double { return yaw_sum_angle; },
-        std::make_unique <PID> (19 / 8192.0 * 360.0, 0, 0, 180, 0)
+        std::make_unique <PID> (19, 0, 0, 360, 0)
     );
     yaw.add_controller(
         [](const auto x) -> double { return ins->raw.gyro[2] / M_PI * 180; },
