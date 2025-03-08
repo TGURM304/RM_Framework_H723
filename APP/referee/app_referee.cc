@@ -229,11 +229,11 @@ void ui_task(void *args) {
                 .receiver_id = receiver
             };
             std::copy_n(reinterpret_cast<uint8_t *>(&ui_header), sizeof(ui_header), ui_buf);
-            for(size_t i = 0; i < 3; i++) {
+            for(size_t i = 0; i < 2; i++) {
                 ui_figure_queue_.receive(ui_figure_pkg);
                 std::copy_n(reinterpret_cast<uint8_t *>(&ui_figure_pkg), sizeof(ui_figure_pkg), ui_buf + sizeof(ui_header) + sizeof(ui_figure_pkg) * i);
             }
-            transmit(0x0301, ui_buf, sizeof(ui_header) + sizeof(ui_figure_pkg) * 3);
+            transmit(0x0301, ui_buf, sizeof(ui_header) + sizeof(ui_figure_pkg) * 2);
         }
         else if(ui_figure_queue_.size() < 7) {
             app_referee_robot_interaction_header_t ui_header = {
