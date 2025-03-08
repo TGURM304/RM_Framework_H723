@@ -131,7 +131,7 @@ inline void app_referee_ui_upd_arc(
     const char *name, uint8_t layer, uint16_t color, uint32_t width, uint32_t x, uint32_t y,
     uint32_t al, uint32_t ar, uint32_t rx, uint32_t ry
 ) {
-    app_referee_ui_add(name, UI_FIGURE_ARC, layer, color, width, x, y, al, ar, 0, rx, ry);
+    app_referee_ui_upd(name, UI_FIGURE_ARC, layer, color, width, x, y, al, ar, 0, rx, ry);
 }
 
 // FLOAT
