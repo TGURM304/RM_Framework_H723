@@ -25,6 +25,7 @@
 #include "bsp_def.h"
 
 #include "app_msg.h"
+#include "app_referee.h"
 #include "app_sys_err.h"
 #include "app_terminal.h"
 #include "bsp_flash.h"
@@ -71,6 +72,9 @@ void app_sys_init() {
 #ifdef COMPILE_GIMBAL
     config.type |= 0b10;
     app_gimbal_init();
+#endif
+#ifdef USE_REFEREE_SYSTEM
+    app_referee_init();
 #endif
 #ifdef USE_FLASH_CHECK
     // 校验 flash 中的 brief，若此处校验不通过，请连接 terminal 执行 flash clear

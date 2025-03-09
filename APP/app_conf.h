@@ -22,6 +22,9 @@
 // 【试验性功能】 若启用，则通过 Flash 检测代码类型是否一致 (判断 ROBOT_BRIEF 和 sys_type 是否相同，专治烧错代码)
 #define USE_FLASH_CHECK
 
+// 若启用，则从 E_UART_REFEREE 更新裁判系统相关信息，注意要在主函数中初始化串口
+#define USE_REFEREE_SYSTEM
+
 #define SYS_FLASH_KEY 998244353
 
 // 底盘
