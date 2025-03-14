@@ -7,6 +7,7 @@
 
 #include "alg_crc.h"
 #include "bsp_can.h"
+#include "bsp_time.h"
 
 
 #include <cstdint>
@@ -16,6 +17,9 @@
 #include <algorithm>
 #include <array>
 #include <functional>
+
+// 根据总线负载选择
+#define MSG_CAN_LIMIT_PER_MILLISECOND 8
 
 /*!
  * 通过 Vofa+ 的 Justfloat 协议发送调试数据（所有数据统一转换为 float）
@@ -54,5 +58,26 @@ void app_msg_can_send(bsp_can_e e, uint32_t id, T &data) {
         app_msg_can_send(e, id, pkg.data() + i);
     }
 }
+
+template <typename T>
+class app_msg_can_receiver {
+public:
+    app_msg_can_receiver(bsp_can_e e, uint32_t id) : port(e), id(id) {}
+    void init() {
+        auto recv = [this](uint8_t *s, uint16_t l) {
+            if(l != sizeof(T)) return;
+            timestamp = bsp_time_get_ms();
+            std::copy_n(s, sizeof(T), reinterpret_cast<uint8_t *>(&data));
+        };
+        app_msg_can_set_callback(port, id, recv);
+    }
+    unsigned int timestamp = 0;
+    const T* operator () () { return &data; }
+    [[nodiscard]] bool valid() const { return bsp_time_get_ms() - timestamp < 100; }
+private:
+    T data;
+    bsp_can_e port;
+    uint32_t id;
+};
 
 #endif //APP_MSG_H

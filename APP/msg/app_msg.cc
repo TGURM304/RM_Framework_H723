@@ -19,9 +19,11 @@ OS::Queue <app_msg_can_t> can_msg_q_(50);
 void can_msg_task(void *args) {
     app_msg_can_t msg {};
     while(true) {
-        if(can_msg_q_.size()) {
+        int count = 0;
+        while(can_msg_q_.size() and ++count < MSG_CAN_LIMIT_PER_MILLISECOND) {
             can_msg_q_.receive(msg);
             bsp_can_send(msg.port, msg.id, msg.data.begin());
+            OS::Task::Yield();
         }
         OS::Task::SleepMilliseconds(1);
     }
@@ -55,15 +57,16 @@ void app_msg_can_recv(bsp_can_msg_t *msg) {
         std::copy_n(msg->data, len, can_recv_buf + can_recv_sz);
         can_recv_sz = std::min(can_recv_tot_sz, static_cast <uint8_t> (8));
     }
-    if(can_recv_sz == can_recv_tot_sz) {
+    if(can_recv_sz and can_recv_sz == can_recv_tot_sz) {
         auto crc8 = CRC8::calc(can_recv_buf, can_recv_tot_sz - 1);
         if(crc8 == can_recv_buf[can_recv_tot_sz - 1]) {
             if(can_recv_callback != nullptr) {
                 can_recv_callback(can_recv_buf + 3, can_recv_tot_sz - 4);
             }
         } else {
-            BSP_ASSERT(0);
+            // BSP_ASSERT(0);
         }
+        can_recv_sz = can_recv_tot_sz = 0;
     }
 }
 
