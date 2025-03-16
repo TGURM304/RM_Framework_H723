@@ -1,10 +1,7 @@
 # RM_Framework_H723
 
 > [!NOTE]
-> 该项目处于开发阶段，存在大量未测试功能，不保证稳定性。
-> - 该项目依赖达妙 mc02 型开发板，如需使用其他开发板请自行移植。
-> - 请不要在 `Core` 目录下实现过多代码，否则会造成不必要的麻烦。
-> - 对于大多使用场景，你只需要完善 `app_gimbal` 和 `app_chassis`，即可实现基本的控制。
+> **该项目为 RM2025 CAUC Hero 电控代码**
 
 ## 快速开始
 
@@ -21,6 +18,7 @@
   bsp_can_init(E_CAN1, &hfdcan1);
   bsp_can_init(E_CAN2, &hfdcan2);
   bsp_can_init(E_CAN3, &hfdcan3);
+  bsp_uart_init(E_UART_485, &huart3);
   bsp_uart_init(E_UART_DEBUG, &huart1);
 ```
 - **根据实际情况修改 app_conf.h 中的 ROBOT_BRIEF。**

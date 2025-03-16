@@ -13,6 +13,7 @@
 #include "bsp_def.h"
 #include "bsp_uart.h"
 #include "bsp_flash.h"
+#include "bsp_time.h"
 #include "sys_task.h"
 #include "tim.h"
 

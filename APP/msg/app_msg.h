@@ -80,4 +80,10 @@ private:
     uint32_t id;
 };
 
+struct app_msg_gimbal_to_chassis {
+    float yaw_motor_angle;
+    int16_t rc_l[2], rc_reserved;
+    bool rc_active;
+} __attribute__((packed));
+
 #endif //APP_MSG_H

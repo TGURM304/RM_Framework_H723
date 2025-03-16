@@ -11,10 +11,10 @@
  */
 
 // Warn: 特化机器人代码前，必须修改此处
-#define ROBOT_BRIEF "DEV_ROBOT"
+#define ROBOT_BRIEF "HERO_CAUC"
 
 // 若启用，则可通过串口访问终端
-#define USE_TERMINAL
+// #define USE_TERMINAL
 
 #define TERMINAL_USER_NAME "user"
 #define TERMINAL_PLATFORM_NAME "stm32"

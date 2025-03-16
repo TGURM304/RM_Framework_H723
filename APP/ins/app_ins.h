@@ -11,6 +11,7 @@
 struct app_ins_data_t {
 	float yaw, pitch, roll;
 	bsp_imu_raw_data_t raw;
+	unsigned int timestamp;
 };
 
 #ifdef __cplusplus
