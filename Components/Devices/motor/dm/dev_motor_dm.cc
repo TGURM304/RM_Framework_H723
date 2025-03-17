@@ -90,6 +90,7 @@ void DMMotor::control(float position, float speed) const {
 // MIT
 void DMMotor::control(float position, float speed, float Kp, float Kd, float torque) const {
     BSP_ASSERT(param_.mode == MIT);
+    BSP_ASSERT(Kp == 0 or Kd != 0); // 根据 MIT 模式说明，若 Kp != 0 且 Kd == 0，会引起震荡。
     if(!enabled_) return;
 
     uint16_t P_des = float_to_uint(position, -param_.p_max, param_.p_max, 16),

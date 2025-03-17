@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "bsp_rc.h"
 #include <cstdint>
 
 /* Referee Data */
@@ -126,6 +127,26 @@ struct app_referee_sentry_info_t {
     uint16_t sentry_info_2;
 } __attribute__ ((packed));
 
+// 0x0302 - 自定义控制器（图传链路）
+struct app_referee_custom_controller_t {
+    float joint[6];
+    // uint16_t key;
+    struct {
+        bool key1 : 1;
+        bool key2 : 1;
+
+    } __attribute__ ((packed)) key;
+    float reserved;
+} __attribute__ ((packed));
+
+// 0x0304 - 客户端控制（图传链路）
+struct app_referee_remote_control_t {
+    int16_t mouse_x, mouse_y, mouse_z;
+    uint8_t mouse_l, mouse_r;
+    bsp_rc_keyboard_u keyboard;
+    uint16_t reserved;
+} __attribute__ ((packed));
+
 struct app_referee_data_t {
     app_referee_game_status_t game_status;
     app_referee_game_result_t game_result;
@@ -140,8 +161,10 @@ struct app_referee_data_t {
     app_referee_rfid_status_t rfid_status;
     app_referee_ground_robot_position_t ground_robot_position;
     app_referee_sentry_info_t sentry_info;
-    unsigned int timestamp;
-} __attribute__ ((packed));
+    app_referee_custom_controller_t custom_controller;
+    app_referee_remote_control_t remote_control;
+    unsigned int timestamp, custom_controller_timestamp;
+};
 
 /* UI */
 

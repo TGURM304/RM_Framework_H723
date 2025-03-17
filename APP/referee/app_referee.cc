@@ -46,6 +46,8 @@ void solver(uint8_t *s) {
         case 0x0209: upd(rfid_status); break;
         case 0x020B: upd(ground_robot_position); break;
         case 0x020D: upd(sentry_info); break;
+        case 0x0302: upd(custom_controller); data.custom_controller_timestamp = bsp_time_get_ms(); break;
+        case 0x0304: upd(remote_control); break;
         default: break;
     }
     data.timestamp = bsp_time_get_ms();

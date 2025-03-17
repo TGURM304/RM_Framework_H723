@@ -38,7 +38,7 @@ void rc_uart_callback(bsp_uart_e e, uint8_t *s, uint16_t l) {
     data.s_r = (int8_t) (raw.s1 == 3 ? 0 : raw.s1 == 2 ? -1 : 1);
     data.mouse_x = raw.mouse_x, data.mouse_y = raw.mouse_y, data.mouse_z = raw.mouse_z;
     data.mouse_l = raw.mouse_l, data.mouse_r = raw.mouse_r;
-    data.keyboard = raw.keyboard, data.reserved = (int16_t) (1024 - raw.reserved);
+    data.keyboard.raw = raw.keyboard, data.reserved = (int16_t) (1024 - raw.reserved);
     data.timestamp = bsp_time_get_ms();
 }
 
