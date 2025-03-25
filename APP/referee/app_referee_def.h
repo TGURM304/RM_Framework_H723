@@ -134,7 +134,20 @@ struct app_referee_custom_controller_t {
     struct {
         bool key1 : 1;
         bool key2 : 1;
-
+        bool key3 : 1;
+        bool key4 : 1;
+        bool key5 : 1;
+        bool key6 : 1;
+        bool key7 : 1;
+        bool key8 : 1;
+        bool key9 : 1;
+        bool key10 : 1;
+        bool key11 : 1;
+        bool key12 : 1;
+        bool key13 : 1;
+        bool key14 : 1;
+        bool key15 : 1;
+        bool key16 : 1;
     } __attribute__ ((packed)) key;
     float reserved;
 } __attribute__ ((packed));
