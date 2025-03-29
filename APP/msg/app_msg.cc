@@ -20,7 +20,7 @@ void can_msg_task(void *args) {
     app_msg_can_t msg {};
     while(true) {
         int count = 0;
-        while(can_msg_q_.size() and ++count < MSG_CAN_LIMIT_PER_MILLISECOND) {
+        while(can_msg_q_.size() and count++ < MSG_CAN_LIMIT_PER_MILLISECOND) {
             can_msg_q_.receive(msg);
             bsp_can_send(msg.port, msg.id, msg.data.begin());
             OS::Task::Yield();
