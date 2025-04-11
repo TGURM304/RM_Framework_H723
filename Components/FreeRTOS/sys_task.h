@@ -41,7 +41,11 @@ namespace OS {
         static void SleepUntil(uint32_t ms, uint32_t &last_weak_up_time) { vTaskDelayUntil(&last_weak_up_time, ms); }
 
         static Task Current() { return Task(xTaskGetCurrentTaskHandle()); }
-        void Delete() const { vTaskDelete(this->handle_); }
+        void Delete() {
+            if(this->handle_ == nullptr) return;
+            auto p = this->handle_; this->handle_ = nullptr;
+            vTaskDelete(p);
+        }
         void Suspend() const { vTaskSuspend(this->handle_); }
         void Resume() const { vTaskResume(this->handle_); }
         static void Yield() { taskYIELD(); }

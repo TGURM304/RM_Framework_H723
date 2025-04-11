@@ -11,6 +11,7 @@
 #include "cmsis_os2.h"
 #include "bsp_led.h"
 #include "bsp_sys.h"
+#include "bsp_buzzer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,6 +23,7 @@ __attribute__((unused)) static void bsp_assert_err(const char *file, uint32_t li
     // 开启 rtos 调度锁，强行停止其他任务，便于调试。
     vTaskSuspendAll();
     bsp_led_set(255, 0, 0);
+    bsp_buzzer_quiet();
     while(1)
         __NOP();
 }

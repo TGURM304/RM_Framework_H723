@@ -35,10 +35,10 @@
 #define TERMINAL_COLOR_WHITE_L ANSI_CSI(97)   /* 亮白 */
 #define TERMINAL_COLOR_DEFAULT ANSI_CSI(39)   /* 默认 */
 
-#define TERMINAL_SEND(val, sz) bsp_uart_send(TERMINAL_PORT, (uint8_t *)val, sz)
-#define TERMINAL_INFO(str, args...) bsp_uart_printf(TERMINAL_PORT, str, ##args)
-#define TERMINAL_ERROR(str, args...) bsp_uart_printf(TERMINAL_PORT, TERMINAL_COLOR_RED str, ##args)
-#define TERMINAL_ERROR_BLOD(str, args...) bsp_uart_printf(TERMINAL_PORT, ANSI_BOLD_ON TERMINAL_COLOR_RED str ANSI_BOLD_OFF, ##args)
+#define TERMINAL_SEND(val, sz) bsp_uart_send_block(TERMINAL_PORT, (uint8_t *)val, sz)
+#define TERMINAL_INFO(str, args...) bsp_uart_printf_block(TERMINAL_PORT, str, ##args)
+#define TERMINAL_ERROR(str, args...) bsp_uart_printf_block(TERMINAL_PORT, TERMINAL_COLOR_RED str, ##args)
+#define TERMINAL_ERROR_BLOD(str, args...) bsp_uart_printf_block(TERMINAL_PORT, ANSI_BOLD_ON TERMINAL_COLOR_RED str ANSI_BOLD_OFF, ##args)
 
 static const char TERMINAL_CLEAR_ALL[] = "\033[2J\033[1H";
 static const char TERMINAL_CLEAR_LINE[]   = "\033[2K\r";

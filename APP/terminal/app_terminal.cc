@@ -133,7 +133,7 @@ void input(char c) {
     if(running) return;
 
     if(c == '\r' or c == '\n') {
-        bsp_uart_printf(TERMINAL_PORT, "\r\n");
+        TERMINAL_INFO("\r\n");
         while(!buf.empty() and buf.back() == ' ')
             buf.pop_back();
         solve();
@@ -143,7 +143,7 @@ void input(char c) {
 
     if(c == 0x7f) {
         if(buf.empty()) return;
-        bsp_uart_printf(TERMINAL_PORT, "\b \b");
+        TERMINAL_INFO("\b \b");
         buf.pop_back();
         return;
     }
@@ -154,7 +154,7 @@ void input(char c) {
     }
 
     if(('a' <= c and c <= 'z') or ('0' <= c and c <= '9') or c == ' ' or ('A' <= c and c <= 'Z')) {
-        bsp_uart_send(TERMINAL_PORT, reinterpret_cast<uint8_t *>(&c), 1);
+        TERMINAL_SEND(&c, 1);
         buf.push_back(c);
     }
 

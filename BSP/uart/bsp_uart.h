@@ -28,7 +28,9 @@ typedef enum {
 
 void bsp_uart_init(bsp_uart_e e, UART_HandleTypeDef *h);
 void bsp_uart_send(bsp_uart_e e, uint8_t *s, uint16_t l);
+void bsp_uart_send_block(bsp_uart_e e, uint8_t *s, uint16_t l);
 void bsp_uart_printf(bsp_uart_e e, const char *fmt, ...);
+void bsp_uart_printf_block(bsp_uart_e e, const char *fmt, ...);
 void bsp_uart_set_callback(bsp_uart_e e, void (*f)(bsp_uart_e e, uint8_t *s, uint16_t l));
 void usb_cdc_callback(uint8_t *s, uint16_t l);
 
