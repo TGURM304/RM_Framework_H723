@@ -35,6 +35,17 @@ void bsp_uart_send(bsp_uart_e e, uint8_t *s, uint16_t l) {
         CDC_Transmit_HS(s, l);
     } else {
         // UART
+        HAL_UART_Transmit_DMA(handle[e], s, l);
+    }
+}
+
+void bsp_uart_send_block(bsp_uart_e e, uint8_t *s, uint16_t l) {
+    BSP_ASSERT(e == E_UART_CDC || handle[e]);
+    if(e == E_UART_CDC) {
+        // USB CDC
+        CDC_Transmit_HS(s, l);
+    } else {
+        // UART
         HAL_UART_Transmit(handle[e], s, l, HAL_MAX_DELAY);
     }
 }
@@ -45,6 +56,14 @@ void bsp_uart_printf(bsp_uart_e e, const char *fmt, ...) {
     uint16_t len = vsnprintf(uart_tx_buf, UART_BUFFER_SIZE, fmt, ap);
     va_end(ap);
     bsp_uart_send(e, uart_tx_buf, len);
+}
+
+void bsp_uart_printf_block(bsp_uart_e e, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    uint16_t len = vsnprintf(uart_tx_buf, UART_BUFFER_SIZE, fmt, ap);
+    va_end(ap);
+    bsp_uart_send_block(e, uart_tx_buf, len);
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *h, uint16_t l) {

@@ -27,13 +27,15 @@
 #include "app_msg.h"
 #include "app_referee.h"
 #include "app_sys_err.h"
+#include "app_music.h"
 #include "app_terminal.h"
 #include "bsp_flash.h"
+#include "usb_device.h"
 
 bool inited_ = false;
 
 bool app_sys_ready() {
-    return inited_ && app_ins_status() == 2;
+    return inited_ && app_ins_status() == 2 && bsp_usb_inited();
 }
 
 static app_sys_conf_t config;
@@ -102,9 +104,10 @@ void app_sys_task() {
     while(app_ins_status() != 2)
         OS::Task::SleepMilliseconds(1);
     if(!app_sys_err()) {
-        bsp_buzzer_flash(1976, 0.5, 125);
-        OS::Task::SleepMilliseconds(50);
-        bsp_buzzer_flash(1976, 0.5, 125);
+        // bsp_buzzer_flash(1976, 0.5, 125);
+        // OS::Task::SleepMilliseconds(50);
+        // bsp_buzzer_flash(1976, 0.5, 125);
+        app_sys_music_play(E_MUSIC_BOOT);
     }
     int8_t r = 0, g = 0, b = 0;
     while(true) {
