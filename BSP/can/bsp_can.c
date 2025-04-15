@@ -30,7 +30,7 @@ uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t 
     callback[e][cnt[e]] = f;
 
     FDCAN_FilterTypeDef filter = {
-        .IdType = FDCAN_STANDARD_ID,
+        .IdType = id > 0x7ff ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID,
         .FilterIndex = tot,
         .FilterType = FDCAN_FILTER_DUAL,
         .FilterID1 = id,
@@ -58,20 +58,46 @@ void bsp_can_send(bsp_can_e e, uint32_t id, uint8_t *s) {
     HAL_FDCAN_AddMessageToTxFifoQ(handle[e], &header, s);
 }
 
+static uint32_t get_data_length(uint8_t l) {
+    if(l <= 8) return l;
+    if(l <= 12) return FDCAN_DLC_BYTES_12;
+    if(l <= 16) return FDCAN_DLC_BYTES_16;
+    if(l <= 20) return FDCAN_DLC_BYTES_20;
+    if(l <= 24) return FDCAN_DLC_BYTES_24;
+    if(l <= 32) return FDCAN_DLC_BYTES_32;
+    if(l <= 48) return FDCAN_DLC_BYTES_48;
+    if(l <= 64) return FDCAN_DLC_BYTES_64;
+    BSP_ASSERT(0); return 0;
+}
+
+void bsp_can_fd_send(bsp_can_e e, uint32_t id, uint8_t *s, uint8_t l) {
+    BSP_ASSERT(handle[e]);
+    FDCAN_TxHeaderTypeDef header = {
+        .Identifier = id,
+        .IdType = id > 0x7ff ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID,
+        .TxFrameType = FDCAN_DATA_FRAME,
+        .DataLength = get_data_length(l),
+        .ErrorStateIndicator = FDCAN_ESI_ACTIVE,
+        .BitRateSwitch = FDCAN_BRS_ON,
+        .FDFormat = FDCAN_FD_CAN,
+        .TxEventFifoControl = FDCAN_STORE_TX_EVENTS,
+        .MessageMarker = 0x01
+    };
+    while(handle[e]->Instance->TXFQS & FDCAN_TXFQS_TFQF) __NOP();
+    HAL_FDCAN_AddMessageToTxFifoQ(handle[e], &header, s);
+}
+
 void bsp_can_rx_sol(bsp_can_e e, uint32_t fifo) {
     bsp_can_msg_t msg = { .port = e };
     while(HAL_FDCAN_GetRxFifoFillLevel(handle[e], fifo)) {
         if(HAL_FDCAN_GetRxMessage(handle[e], fifo, &msg.header, msg.data) != HAL_OK) break;
-        if(msg.header.FDFormat == FDCAN_CLASSIC_CAN) {
+        if(msg.header.FDFormat == FDCAN_CLASSIC_CAN || msg.header.FDFormat == FDCAN_FD_CAN) {
             for(uint8_t i = 0; i < cnt[e]; i++) {
                 if(rx_id[e][i] == msg.header.Identifier) {
                     BSP_ASSERT(callback[e][i] != NULL);
                     callback[e][i](&msg);
                 }
             }
-        } else {
-            // TODO: CAN FD Feature Support
-            BSP_ASSERT(0);
         }
     }
 }
