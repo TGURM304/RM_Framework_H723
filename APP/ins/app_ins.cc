@@ -35,6 +35,10 @@ Controller::PID temp_pid;
 int ins_flag = 0;
 double gyro_correct[3];
 
+/**
+ * @brief  陀螺仪的上电初始化与校准
+ * @note  该函数已功能完善，一般情况下请勿修改
+ */
 void app_ins_init() {
     bsp_imu_init();
     BSP_ASSERT(bsp_adc_vbus() > 0);
@@ -130,7 +134,10 @@ void app_ins_init() {
 
     inited_ = true;
 }
-
+/**
+ * @brief   陀螺仪的任务函数，获取三轴姿态角和三轴加速度
+ * @note    该函数已功能完善，一般情况下请勿修改
+ */
 void app_ins_task(void *args) {
     while(!inited_)
         OS::Task::SleepMilliseconds(10);
@@ -176,11 +183,19 @@ void app_ins_task(void *args) {
         OS::Task::SleepMilliseconds(1);
     }
 }
-
+/**
+ * @brief   检查陀螺仪运行状态
+ * @return  ins_flag：陀螺仪状态
+ * @note    当ins_flag=2时，陀螺仪正常工作
+ */
 uint8_t app_ins_status() {
     return ins_flag;
 }
-
+/**
+ * @brief  获取陀螺仪数据指针
+ *
+ * @note   示例：const auto ins = app_ins_data();
+ */
 const app_ins_data_t *app_ins_data() {
     return &data;
 }
