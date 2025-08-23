@@ -55,7 +55,7 @@ uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t 
     callback[e][cnt[e]] = f;
 
     FDCAN_FilterTypeDef filter = {
-        .IdType = FDCAN_STANDARD_ID,
+        .IdType = id > 0x7ff ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID,
         .FilterIndex = tot,
         .FilterType = FDCAN_FILTER_DUAL,
         .FilterID1 = id,
@@ -89,7 +89,66 @@ void bsp_can_send(bsp_can_e e, uint32_t id, uint8_t *s) {
         .TxEventFifoControl = FDCAN_STORE_TX_EVENTS,
         .MessageMarker = 0x01
     };
-    while(handle[e]->Instance->TXFQS & FDCAN_TXFQS_TFQF) __NOP();  // 等待 TX FIFO 空位
+    while(handle[e]->Instance->TXFQS & FDCAN_TXFQS_TFQF) __NOP();
+    HAL_FDCAN_AddMessageToTxFifoQ(handle[e], &header, s);
+}
+/**
+ * @brief      根据要发送的数据长度获取 FDCAN 数据长度码(DLC)值
+ * @param[in]  l  实际数据长度（字节数）
+ * @return     FDCAN DLC 对应的长度值
+ *
+ * @note
+ * - CAN 总线的数据帧在经典 CAN 中最多 8 字节，
+ *   FDCAN (CAN FD) 支持 8~64 字节的数据帧。
+ * - FDCAN 使用 DLC 字段表示实际数据长度：
+ * - 如果传入长度超过 64 字节，会触发断言错误（BSP_ASSERT(0)）。
+ *
+ */
+static uint32_t get_data_length(uint8_t l) {
+    if(l <= 8) return l;
+    if(l <= 12) return FDCAN_DLC_BYTES_12;
+    if(l <= 16) return FDCAN_DLC_BYTES_16;
+    if(l <= 20) return FDCAN_DLC_BYTES_20;
+    if(l <= 24) return FDCAN_DLC_BYTES_24;
+    if(l <= 32) return FDCAN_DLC_BYTES_32;
+    if(l <= 48) return FDCAN_DLC_BYTES_48;
+    if(l <= 64) return FDCAN_DLC_BYTES_64;
+    BSP_ASSERT(0); return 0;
+}
+/**
+ * @brief      发送一帧 CAN FD 数据
+ * @param  e   CAN 端口枚举 (bsp_can_e)
+ * @param  id  CAN 消息 ID（标准 11 位或扩展 29 位）
+ * @param  s   指向要发送的数据缓冲区
+ * @param  l   数据长度（字节数，1~64）
+ *
+ * @note
+ * - 这是 FDCAN (CAN FD) 模式下发送数据的函数，支持 8~64 字节的数据帧。
+ * - 数据长度通过 get_data_length(l) 映射成 FDCAN DLC 字段值。
+ * - ID 根据大小自动选择标准帧或扩展帧：
+ *     - ID <= 0x7FF -> 标准 11 位
+ *     - ID > 0x7FF  -> 扩展 29 位
+ * - CAN FD 特性：
+ *     - BitRateSwitch = FDCAN_BRS_ON：使能 CAN FD 位速率切换，高速传输数据段
+ *     - FDFormat = FDCAN_FD_CAN：使用 CAN FD 帧格式
+ * - TxEventFifoControl = FDCAN_STORE_TX_EVENTS：存储发送事件到 FIFO，便于调试或回调处理
+ * - MessageMarker = 0x01：标记消息，可用于软件追踪
+ *
+ */
+void bsp_can_fd_send(bsp_can_e e, uint32_t id, uint8_t *s, uint8_t l) {
+    BSP_ASSERT(handle[e]);
+    FDCAN_TxHeaderTypeDef header = {
+        .Identifier = id,
+        .IdType = id > 0x7ff ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID,
+        .TxFrameType = FDCAN_DATA_FRAME,
+        .DataLength = get_data_length(l),
+        .ErrorStateIndicator = FDCAN_ESI_ACTIVE,
+        .BitRateSwitch = FDCAN_BRS_ON,
+        .FDFormat = FDCAN_FD_CAN,
+        .TxEventFifoControl = FDCAN_STORE_TX_EVENTS,
+        .MessageMarker = 0x01
+    };
+    while(handle[e]->Instance->TXFQS & FDCAN_TXFQS_TFQF) __NOP();
     HAL_FDCAN_AddMessageToTxFifoQ(handle[e], &header, s);
 }
 
@@ -106,16 +165,13 @@ void bsp_can_rx_sol(bsp_can_e e, uint32_t fifo) {
     bsp_can_msg_t msg = { .port = e };
     while(HAL_FDCAN_GetRxFifoFillLevel(handle[e], fifo)) {
         if(HAL_FDCAN_GetRxMessage(handle[e], fifo, &msg.header, msg.data) != HAL_OK) break;
-        if(msg.header.FDFormat == FDCAN_CLASSIC_CAN) {
+        if(msg.header.FDFormat == FDCAN_CLASSIC_CAN || msg.header.FDFormat == FDCAN_FD_CAN) {
             for(uint8_t i = 0; i < cnt[e]; i++) {
                 if(rx_id[e][i] == msg.header.Identifier) {
                     BSP_ASSERT(callback[e][i] != NULL);
-                    callback[e][i](&msg);  // 调用回调函数处理消息
+                    callback[e][i](&msg);
                 }
             }
-        } else {
-            // TODO: CAN FD Feature Support
-            BSP_ASSERT(0);
         }
     }
 }

@@ -6,7 +6,7 @@
 #define BSP_CAN_H
 
 #define BSP_CAN_FILTER_LIMIT 25
-#define BSP_CAN_MSG_LIMIT 8
+#define BSP_CAN_MSG_LIMIT 64
 
 #include "stdint.h"
 #include "fdcan.h"
@@ -33,6 +33,7 @@ typedef struct {
 void bsp_can_init(bsp_can_e e, FDCAN_HandleTypeDef *h);
 uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t *msg));
 void bsp_can_send(bsp_can_e e, uint32_t id, uint8_t *s);
+void bsp_can_fd_send(bsp_can_e e, uint32_t id, uint8_t *s, uint8_t l);
 
 #ifdef __cplusplus
 }
