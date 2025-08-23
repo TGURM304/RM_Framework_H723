@@ -29,7 +29,7 @@ const char about_text[] = " ________  __            __       \r\n"
                           "\r\n"
                           "Build: " __DATE__ " " __TIME__ " \r\n";
 
-    char tmp[1024];  // 临时缓冲区，用于显示任务信息
+char tmp[1024];  // 临时缓冲区，用于显示任务信息
 std::string buf; // 当前输入缓冲区
 std::map<std::string, std::function<bool(std::vector<std::string>)>> cmd; // 命令表
 std::map<std::string, std::string> cmd_brief; // 命令简要描述
