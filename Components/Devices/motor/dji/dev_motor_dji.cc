@@ -25,7 +25,13 @@ static DJIMotor* device_ptr[BSP_CAN_ENUM_SIZE][DJI_MOTOR_LIMIT];
 static uint8_t device_cnt[BSP_CAN_ENUM_SIZE];
 static uint8_t can_tx_buf[BSP_CAN_ENUM_SIZE][ctrl_id_map_size + 1][8];
 static bool ctrl_id_used[BSP_CAN_ENUM_SIZE][ctrl_id_map_size + 1];
-
+/**
+ * @brief DJIMotor 构造函数
+ * @param name   电机名称(自命名)
+ * @param model  电机型号（GM6020 / M3508 / M2006）
+ * @param param  电机参数（CAN 端口号、ID、控制模式等）
+ *
+ */
 DJIMotor::DJIMotor(const char *name, const Model &model, const Param &param) : model_(model), param_(param), output_(0) {
     BSP_ASSERT(model == GM6020 or model == M3508 or model == M2006);
     BSP_ASSERT(0 <= param.port and param.port < BSP_CAN_ENUM_SIZE);
@@ -55,14 +61,18 @@ DJIMotor::DJIMotor(const char *name, const Model &model, const Param &param) : m
     ctrl_id_used[param.port][id_trans(ctrl_id)] = true;
 }
 
-
+/**
+ * @brief 初始化电机，注册 CAN 回调并使能
+ */
 void DJIMotor::init() {
     // Can Register
     bsp_can_set_callback(param_.port, feedback_id, dev_dji_motor_can_callback);
     // Enable the motor
     enable();
 }
-
+/**
+ * @brief 更新电机控制输出值（填充到 CAN 发送缓冲区）
+ */
 void DJIMotor::update(float output) {
     if(!enabled_) return;
     output_ = output;
@@ -70,23 +80,31 @@ void DJIMotor::update(float output) {
     can_tx_buf[param_.port][cid][(mid - 1) << 1] = static_cast <int16_t> (output) >> 8;
     can_tx_buf[param_.port][cid][(mid - 1) << 1 | 1] = static_cast <int16_t> (output) & 0xff;
 }
-
+/**
+ * @brief 清除电机状态并将输出置零
+ */
 void DJIMotor::clear() {
     update(0);
     status.angle = status.current = status.speed = status.temperature = 0;
 }
-
+/**
+ * @brief 使能电机
+ */
 void DJIMotor::enable() {
     if(enabled_) return;
     enabled_ = true;
 }
-
+/**
+ * @brief 失能电机并清零
+ */
 void DJIMotor::disable() {
     if(!enabled_) return;
     clear();
     enabled_ = false;
 }
-
+/**
+ * @brief 电机 CAN 接收回调（解析反馈数据）
+ */
 void dev_dji_motor_can_callback(bsp_can_msg_t *msg) {
     if(!device_cnt[msg->port]) return;
 
@@ -113,7 +131,9 @@ void dev_dji_motor_can_callback(bsp_can_msg_t *msg) {
 
     p->status.last_online_time = bsp_time_get_ms();
 }
-
+/**
+ * @brief 电机任务函数
+ */
 void dev_dji_motor_task(void *arg) {
     UNUSED(arg);
     while(true) {

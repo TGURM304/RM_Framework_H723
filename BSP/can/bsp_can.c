@@ -73,7 +73,7 @@ uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t 
  * -将指定 ID 的 8 字节数据帧发送到 CAN 总线。
  * -会等待 TX FIFO 有空闲位置后再发送
  *
- * @param  e   CAN 端口
+ * @param  e   CAN 端口枚举
  * @param  id  消息 ID
  * @param  s   8 字节数据缓冲区
  */
@@ -124,15 +124,8 @@ static uint32_t get_data_length(uint8_t l) {
  *
  * @note
  * - 这是 FDCAN (CAN FD) 模式下发送数据的函数，支持 8~64 字节的数据帧。
+ *
  * - 数据长度通过 get_data_length(l) 映射成 FDCAN DLC 字段值。
- * - ID 根据大小自动选择标准帧或扩展帧：
- *     - ID <= 0x7FF -> 标准 11 位
- *     - ID > 0x7FF  -> 扩展 29 位
- * - CAN FD 特性：
- *     - BitRateSwitch = FDCAN_BRS_ON：使能 CAN FD 位速率切换，高速传输数据段
- *     - FDFormat = FDCAN_FD_CAN：使用 CAN FD 帧格式
- * - TxEventFifoControl = FDCAN_STORE_TX_EVENTS：存储发送事件到 FIFO，便于调试或回调处理
- * - MessageMarker = 0x01：标记消息，可用于软件追踪
  *
  */
 void bsp_can_fd_send(bsp_can_e e, uint32_t id, uint8_t *s, uint8_t l) {

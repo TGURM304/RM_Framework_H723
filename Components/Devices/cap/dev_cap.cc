@@ -12,13 +12,20 @@
 using namespace CAP;
 
 static cap_data_t data_;
-
+/**
+ * @brief 获取超级电容数据指针
+ *
+ * @return 超级电容数据
+ */
 const cap_data_t* CAP::data() {
     return &data_;
 }
 
 #define reverse(x) { x = (x & 0xff) << 8 | x >> 8; }
 
+/**
+ * @brief 从 CAN 消息更新电容数据
+ */
 void recv(bsp_can_msg_t *msg) {
     memcpy(&data_.raw, msg->data, sizeof(cap_raw_data_t));
     reverse(data_.raw.cap_current);
@@ -32,7 +39,9 @@ void recv(bsp_can_msg_t *msg) {
     data_.cap_percent = data_.raw.cap_percent;
     data_.last_online_time = bsp_time_get_ms();
 }
-
+/**
+ * @brief 发送超级电容限制功率到 CAN
+ */
 void CAP::send(float limit) {
     int x = static_cast <int> (limit), y = static_cast <int> (limit * 100) % 100;
     // 30 <= x <= 250, 0 <= y <= 99
@@ -40,7 +49,9 @@ void CAP::send(float limit) {
     tx[0] = x, tx[1] = y;
     bsp_can_send(E_CAN1, 0x0ff, tx);
 }
-
+/**
+ * @brief 初始化超级电容，注册 CAN 回调
+ */
 void CAP::init() {
     bsp_can_set_callback(E_CAN1, 0x0ff, recv);
 }
