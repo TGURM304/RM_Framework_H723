@@ -27,7 +27,10 @@ typedef struct {
 
 static bsp_rc_raw_t raw;
 bsp_rc_data_t data;
-
+/**
+ * @brief  遥控器端口接收callback函数，用于处理收到的遥控器原始数据
+ *
+ */
 void rc_uart_callback(bsp_uart_e e, uint8_t *s, uint16_t l) {
     BSP_ASSERT(e == E_UART_RC);
     BSP_ASSERT(sizeof(bsp_rc_raw_t) * 8 == 128 + 16);
@@ -41,11 +44,17 @@ void rc_uart_callback(bsp_uart_e e, uint8_t *s, uint16_t l) {
     data.keyboard.raw = raw.keyboard, data.reserved = (int16_t) (1024 - raw.reserved);
     data.timestamp = bsp_time_get_ms();
 }
-
+/**
+ * @brief  获取遥控器数据指针
+ *
+ */
 const bsp_rc_data_t *bsp_rc_data() {
     return &data;
 }
-
+/**
+ * @brief  遥控器数据接收初始化函数
+ *
+ */
 void bsp_rc_init() {
     bsp_uart_init(E_UART_RC, &RC_UART_PORT);
     bsp_uart_set_callback(E_UART_RC, rc_uart_callback);

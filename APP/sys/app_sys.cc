@@ -32,19 +32,44 @@
 #include "bsp_flash.h"
 #include "usb_device.h"
 
+/* 系统是否初始化完成标志 */
 bool inited_ = false;
 
+/**
+ * @brief 检查系统是否已经准备就绪
+ *
+ * 系统就绪条件：
+ * - 系统初始化完成
+ * - IMU 正常就绪
+ * - USB 初始化完成
+ *
+ * @return true  系统已准备就绪
+ * @return false 系统未准备好
+ */
 bool app_sys_ready() {
     return inited_ && app_ins_status() == 2 && bsp_usb_inited();
 }
 
+/* 系统配置结构体 */
 static app_sys_conf_t config;
+/* Flash 配置缓存 */
 static app_sys_flash_t flash;
 
+/**
+ * @brief 获取系统配置指针
+ *
+ * @return const app_sys_conf_t* 指向系统配置的指针
+ */
 const app_sys_conf_t *app_sys_conf() {
     return &config;
 }
 
+/**
+ * @brief 初始化系统终端命令
+ *
+ * 注册命令：
+ * - sys vbus：循环输出电源总线电压
+ */
 void app_sys_terminal_init() {
     app_terminal_register_cmd("sys", "system commands", [](const auto &args) -> bool {
         if(args.size() == 1) {
@@ -62,6 +87,13 @@ void app_sys_terminal_init() {
     });
 }
 
+/**
+ * @brief 系统初始化
+ *
+ * - 初始化 IMU、终端、底盘、云台、裁判系统
+ * - 校验 Flash 配置并处理错误
+ * - 设置系统初始化完成标志
+ */
 void app_sys_init() {
     app_ins_init();
 #ifdef USE_TERMINAL
@@ -95,7 +127,15 @@ void app_sys_init() {
     inited_ = true;
 }
 
-// 放一些系统级任务
+/**
+ * @brief 系统主任务
+ *
+ * 功能：
+ * - 开机蜂鸣器提示
+ * - LED 灯光效果：正常工作白色呼吸灯，Flash 描述符错误黄灯闪烁
+ * - 等待 IMU 就绪
+ * - 播放开机音乐（建议为春日影）
+ */
 void app_sys_task() {
     bsp_buzzer_flash(1976, 0.5, 250);
     bsp_led_set(0, 0, 255);
@@ -104,9 +144,6 @@ void app_sys_task() {
     while(app_ins_status() != 2)
         OS::Task::SleepMilliseconds(1);
     if(!app_sys_err()) {
-        // bsp_buzzer_flash(1976, 0.5, 125);
-        // OS::Task::SleepMilliseconds(50);
-        // bsp_buzzer_flash(1976, 0.5, 125);
         app_sys_music_play(E_MUSIC_BOOT);
     }
     int8_t r = 0, g = 0, b = 0;
@@ -128,26 +165,42 @@ void app_sys_task() {
     }
 }
 
-/*
- *  Note:
- *  - 为了确保代码同时适用于单板、双板控制场景，这里同时开两个任务，但不必同时实现。
- *  - 若 chassis / gimbal 任务未实现，则进入下面的函数删除任务。
- *  Warning:
- *  - 若不理解下面的代码是什么意思，请不要随意修改。
+/**
+ * @brief 底盘任务
+ *
+ * 若未实现底盘任务，则直接删除任务。
+ * @param argument 任务参数
  */
-
 __weak void app_chassis_task(void *argument) {
     OS::Task::Current().Delete();
 }
 
+/**
+ * @brief 云台任务函数
+ *
+ * 若未实现云台任务，则直接删除任务。
+ * @param argument 任务参数
+ */
 __weak void app_gimbal_task(void *argument) {
     OS::Task::Current().Delete();
 }
 
+/**
+ * @brief DJI 电机任务函数
+ *
+ * 若未实现 DJI 电机任务，则直接删除任务。
+ * @param argument 任务参数
+ */
 __weak void dev_dji_motor_task(void *argument) {
     OS::Task::Current().Delete();
 }
 
+/**
+ * @brief IMU任务函数
+ *
+ * 若未实现 IMU 任务，则直接删除任务。
+ * @param argument 任务参数
+ */
 __weak void app_ins_task(void *argument) {
     OS::Task::Current().Delete();
 }

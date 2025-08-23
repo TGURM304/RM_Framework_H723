@@ -3,11 +3,9 @@
 //
 
 #include "app_terminal.h"
-
 #include <cstring>
 #include <map>
 #include <string>
-
 #include "bsp_buzzer.h"
 #include "bsp_def.h"
 #include "bsp_tim.h"
@@ -31,19 +29,25 @@ const char about_text[] = " ________  __            __       \r\n"
                           "\r\n"
                           "Build: " __DATE__ " " __TIME__ " \r\n";
 
-char tmp[1024];
-std::string buf;
-std::map<std::string, std::function<bool(std::vector<std::string>)>> cmd;
-std::map<std::string, std::string> cmd_brief;
+    char tmp[1024];  // 临时缓冲区，用于显示任务信息
+std::string buf; // 当前输入缓冲区
+std::map<std::string, std::function<bool(std::vector<std::string>)>> cmd; // 命令表
+std::map<std::string, std::string> cmd_brief; // 命令简要描述
 
 #define TERMINAL_CMD_MEM_SIZE 100
-std::string cmd_mem[TERMINAL_CMD_MEM_SIZE];
+std::string cmd_mem[TERMINAL_CMD_MEM_SIZE]; // 历史命令缓存
 int mem_ptr = 0, mem_cur_ptr = 0;
 
-bool running = false, result = false, force_stop = false;
-std::pair<std::function<bool(std::vector<std::string>)>, std::vector<std::string>> runtime;
+bool running = false;  // 命令执行状态
+bool result = false;   // 命令执行结果
+bool force_stop = false; // 强制停止标志
+std::pair<std::function<bool(std::vector<std::string>)>, std::vector<std::string>> runtime; // 当前运行命令
 
-void show_head() {
+/**
+ * @brief 显示终端提示符
+ *
+ */
+ void show_head() {
     bsp_uart_printf(TERMINAL_PORT,
                     "%s%s@%s:%s%s%s$\e[00m ",
                     TERMINAL_COLOR_GREEN,
@@ -54,16 +58,18 @@ void show_head() {
                     TERMINAL_COLOR_GREEN);
 }
 
-void fill_buf(const std::string &val) {
-    for(int i = 0; i < buf.size(); i++)
-        TERMINAL_SEND(KEY_LEFT, 3);
-    TERMINAL_SEND(TERMINAL_CLEAR_BEHIND, 3);
-    buf = val;
-    TERMINAL_INFO("%s", buf.c_str());
-}
+/**
+ * @brief 用指定字符串填充输入缓冲区
+ *
+ */
+ void fill_buf(const std::string &val) { ... }
 
 static OS::Task terminal;
 
+/**
+ * @brief 终端任务，执行运行中的命令
+ *
+ */
 void terminal_task(void *args) {
     while(true) {
         if(!running) {
@@ -76,6 +82,11 @@ void terminal_task(void *args) {
         running = false;
     }
 }
+
+/**
+ * @brief  解析并执行当前输入缓冲区的命令
+ *
+ */
 
 bool solve() {
     // bsp_uart_printf(TERMINAL_PORT, "Recv: [%d] %s\r\n", buf.size(), buf.c_str());
@@ -115,6 +126,10 @@ bool solve() {
     return false;
 }
 
+/**
+ * @brief  停止当前正在运行的命令
+ *
+ */
 void stop_running_task() {
     if(running) {
         running    = false;
@@ -123,6 +138,11 @@ void stop_running_task() {
     }
 }
 
+/**
+ * @brief  接收单个字符输入并处理
+ *
+ * @param c 单个输入字符
+ */
 void input(char c) {
     // Ctrl-C
     if(c == 3) {
@@ -161,6 +181,10 @@ void input(char c) {
     // bsp_uart_printf(TERMINAL_PORT, "received: %d\r\n", (int) c);
 }
 
+/**
+ * @brief  串口回调函数，接收数据并处理方向键及输入
+ * @param e 串口（即E_UART_TERMINAL） s 数据  l 长度
+ */
 void recv(bsp_uart_e e, uint8_t *s, uint16_t l) {
     if(l == 3 and s[0] == 27 and s[1] == 91) {
         if(s[2] == 65) {
@@ -187,6 +211,10 @@ void recv(bsp_uart_e e, uint8_t *s, uint16_t l) {
         input(s[i]);
 }
 
+/**
+ * @brief 终端初始化任务函数
+ *
+ */
 void app_terminal_init() {
     bsp_uart_set_callback(TERMINAL_PORT, recv);
     app_terminal_register_cmd("help", "show commands", [](const std::vector<std::string> &args) -> bool {
@@ -248,12 +276,22 @@ void app_terminal_init() {
 
     terminal.Create(terminal_task, static_cast<void *>(nullptr), "terminal", 512, OS::Task::MEDIUM);
 }
-
+/**
+ * @brief 注册终端命令函数（无简短描述）
+ * @param name 命令名称
+ * @param func 命令对应的执行函数，接收参数列表 vector<string>，返回 bool 表示执行结果
+ *
+ */
 void app_terminal_register_cmd(const std::string &name, const std::function<bool(std::vector<std::string>)> &func) {
     BSP_ASSERT(cmd.count(name) == 0);
     cmd[name] = func;
 }
 
+/**
+ * @brief 注册终端命令函数（附带简短描述）
+ * @param name 命令名称
+ * @param func 命令对应的执行函数，接收参数列表 vector<string>，返回 bool 表示执行结果
+ */
 void app_terminal_register_cmd(const std::string &name,
                                const std::string &brief,
                                const std::function<bool(std::vector<std::string>)> &func) {
@@ -262,6 +300,11 @@ void app_terminal_register_cmd(const std::string &name,
     cmd_brief[name] = brief;
 }
 
+/**
+ * @brief 获取命令行运行状态标志指针
+ *
+ * @return 状态标志
+ */
 bool *app_terminal_running_flag() {
     return &running;
 }
