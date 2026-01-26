@@ -10,6 +10,7 @@
 
 static uint8_t uart_tx_buf[UART_BUFFER_SIZE];
 static uint8_t uart_rx_buf[UART_ENUM_SIZE][UART_BUFFER_SIZE];
+static uint8_t uart_dma_buf[UART_ENUM_SIZE][UART_BUFFER_SIZE];
 static UART_HandleTypeDef *handle[UART_ENUM_SIZE] = { NULL };
 static void (*callback[UART_ENUM_SIZE])(bsp_uart_e e, uint8_t *s, uint16_t l);
 
@@ -35,7 +36,8 @@ void bsp_uart_send(bsp_uart_e e, uint8_t *s, uint16_t l) {
         CDC_Transmit_HS(s, l);
     } else {
         // UART
-        HAL_UART_Transmit_DMA(handle[e], s, l);
+        memcpy(uart_dma_buf[e], s, l * sizeof(uint8_t));
+        HAL_UART_Transmit_DMA(handle[e], uart_dma_buf[e], l);
     }
 }
 

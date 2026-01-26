@@ -6,12 +6,10 @@
 
 #include "bsp_def.h"
 
-static uint8_t tot;
-static uint8_t cnt[E_CAN_END_DONT_REMOVE];
-
 static FDCAN_HandleTypeDef *handle[E_CAN_END_DONT_REMOVE];
 
-static uint32_t rx_id[E_CAN_END_DONT_REMOVE][BSP_CAN_FILTER_LIMIT];
+static uint8_t cnt[E_CAN_END_DONT_REMOVE][2];
+static uint32_t rx_id[E_CAN_END_DONT_REMOVE][2][BSP_CAN_FILTER_LIMIT];
 static void (*callback[E_CAN_END_DONT_REMOVE][BSP_CAN_FILTER_LIMIT]) (bsp_can_msg_t *msg);
 
 void bsp_can_init(bsp_can_e e, FDCAN_HandleTypeDef *h) {
@@ -25,13 +23,15 @@ void bsp_can_init(bsp_can_e e, FDCAN_HandleTypeDef *h) {
 }
 
 uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t *msg)) {
-    BSP_ASSERT(tot < BSP_CAN_FILTER_LIMIT && f != NULL);
-    rx_id[e][cnt[e]] = id;
-    callback[e][cnt[e]] = f;
+    uint8_t is_ext = id > 0x7ff;
+
+    BSP_ASSERT(cnt[e][is_ext] < BSP_CAN_FILTER_LIMIT && f != NULL);
+    rx_id[e][is_ext][cnt[e][is_ext]] = id;
+    callback[e][cnt[e][is_ext]] = f;
 
     FDCAN_FilterTypeDef filter = {
         .IdType = id > 0x7ff ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID,
-        .FilterIndex = tot,
+        .FilterIndex = cnt[e][is_ext],
         .FilterType = FDCAN_FILTER_DUAL,
         .FilterID1 = id,
         .FilterID2 = id,
@@ -39,7 +39,7 @@ uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t 
     };
 
     BSP_ASSERT(HAL_FDCAN_ConfigFilter(handle[e], &filter) == HAL_OK);
-    return tot ++, cnt[e] ++;
+    return cnt[e][is_ext] ++;
 }
 
 void bsp_can_send(bsp_can_e e, uint32_t id, uint8_t *s) {
@@ -92,8 +92,9 @@ void bsp_can_rx_sol(bsp_can_e e, uint32_t fifo) {
     while(HAL_FDCAN_GetRxFifoFillLevel(handle[e], fifo)) {
         if(HAL_FDCAN_GetRxMessage(handle[e], fifo, &msg.header, msg.data) != HAL_OK) break;
         if(msg.header.FDFormat == FDCAN_CLASSIC_CAN || msg.header.FDFormat == FDCAN_FD_CAN) {
-            for(uint8_t i = 0; i < cnt[e]; i++) {
-                if(rx_id[e][i] == msg.header.Identifier) {
+            uint8_t is_ext = (msg.header.IdType == FDCAN_EXTENDED_ID);
+            for(uint8_t i = 0; i < cnt[e][is_ext]; i++) {
+                if(rx_id[e][is_ext][i] == msg.header.Identifier) {
                     BSP_ASSERT(callback[e][i] != NULL);
                     callback[e][i](&msg);
                 }

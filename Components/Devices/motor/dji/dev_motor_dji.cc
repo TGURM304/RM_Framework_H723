@@ -11,8 +11,11 @@
 #include "bsp_time.h"
 #include <cstring>
 
+#include "dev_cap.h"
+
 using namespace Motor;
 
+static bool inited = false;
 static constexpr uint16_t ctrl_id_map[] = { 0x2ff, 0x1ff, 0x2fe, 0x1fe, 0x200 };
 static constexpr size_t ctrl_id_map_size = sizeof(ctrl_id_map) / sizeof(uint16_t);
 static uint8_t id_trans(uint16_t x) {
@@ -56,7 +59,14 @@ DJIMotor::DJIMotor(const char *name, const Model &model, const Param &param) : m
 }
 
 
+TaskHandle_t task_handle;
+void dev_dji_motor_task(void *arg);
+
 void DJIMotor::init() {
+    if(!inited) {
+        inited = true;
+        xTaskCreate(dev_dji_motor_task, "dji_motor", 512, nullptr, 5, &task_handle);
+    }
     // Can Register
     bsp_can_set_callback(param_.port, feedback_id, dev_dji_motor_can_callback);
     // Enable the motor
@@ -116,6 +126,7 @@ void dev_dji_motor_can_callback(bsp_can_msg_t *msg) {
 
 void dev_dji_motor_task(void *arg) {
     UNUSED(arg);
+    while(!inited) osDelay(10);
     while(true) {
         for(uint8_t i = 0; i < BSP_CAN_ENUM_SIZE; i++) {
             if(!device_cnt[i]) continue;

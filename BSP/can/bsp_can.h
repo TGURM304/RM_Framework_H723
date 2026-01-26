@@ -5,7 +5,7 @@
 #ifndef BSP_CAN_H
 #define BSP_CAN_H
 
-#define BSP_CAN_FILTER_LIMIT 25
+#define BSP_CAN_FILTER_LIMIT 8
 #define BSP_CAN_MSG_LIMIT 64
 
 #include "stdint.h"

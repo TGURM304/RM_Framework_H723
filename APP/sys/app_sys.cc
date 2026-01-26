@@ -99,8 +99,20 @@ void app_sys_init() {
     inited_ = true;
 }
 
+void bsp_hw_init() {
+    bsp_rc_init();
+    bsp_adc_init();
+    bsp_flash_init();
+    bsp_buzzer_init();
+    bsp_can_init(E_CAN1, &hfdcan1);
+    bsp_can_init(E_CAN2, &hfdcan2);
+    bsp_can_init(E_CAN3, &hfdcan3);
+    bsp_uart_init(E_UART_DEBUG, &huart1);
+}
+
 // 放一些系统级任务
 void app_sys_task() {
+    bsp_hw_init();
     bsp_buzzer_flash(1976, 0.5, 250);
     bsp_led_set(0, 0, 255);
     app_sys_init();
@@ -108,9 +120,6 @@ void app_sys_task() {
     while(app_ins_status() != 2)
         OS::Task::SleepMilliseconds(1);
     if(!app_sys_err()) {
-        // bsp_buzzer_flash(1976, 0.5, 125);
-        // OS::Task::SleepMilliseconds(50);
-        // bsp_buzzer_flash(1976, 0.5, 125);
         app_sys_music_play(E_MUSIC_BOOT);
     }
     int8_t r = 0, g = 0, b = 0;
@@ -145,14 +154,6 @@ __weak void app_chassis_task(void *argument) {
 }
 
 __weak void app_gimbal_task(void *argument) {
-    OS::Task::Current().Delete();
-}
-
-__weak void app_custom_task(void *argument) {
-    OS::Task::Current().Delete();
-}
-
-__weak void dev_dji_motor_task(void *argument) {
     OS::Task::Current().Delete();
 }
 
