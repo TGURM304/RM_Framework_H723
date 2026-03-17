@@ -9,3 +9,4 @@ Core
 .mxproject
 .idea
 CMakeLists.txt
+.settings

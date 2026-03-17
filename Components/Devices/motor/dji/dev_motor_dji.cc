@@ -24,14 +24,14 @@ static uint8_t id_trans(uint16_t x) {
 }
 
 // Device Class Ptr & Device Cnt (以 can_e 分类，保证一条 can 总线上的设备 id 不冲突)
-static DJIMotor* device_ptr[BSP_CAN_ENUM_SIZE][DJI_MOTOR_LIMIT];
-static uint8_t device_cnt[BSP_CAN_ENUM_SIZE];
-static uint8_t can_tx_buf[BSP_CAN_ENUM_SIZE][ctrl_id_map_size + 1][8];
-static bool ctrl_id_used[BSP_CAN_ENUM_SIZE][ctrl_id_map_size + 1];
+static DJIMotor* device_ptr[BSP_CAN_DEVICE_COUNT][DJI_MOTOR_LIMIT];
+static uint8_t device_cnt[BSP_CAN_DEVICE_COUNT];
+static uint8_t can_tx_buf[BSP_CAN_DEVICE_COUNT][ctrl_id_map_size + 1][8];
+static bool ctrl_id_used[BSP_CAN_DEVICE_COUNT][ctrl_id_map_size + 1];
 
 DJIMotor::DJIMotor(const char *name, const Model &model, const Param &param) : model_(model), param_(param), output_(0) {
     BSP_ASSERT(model == GM6020 or model == M3508 or model == M2006);
-    BSP_ASSERT(0 <= param.port and param.port < BSP_CAN_ENUM_SIZE);
+    BSP_ASSERT(0 <= param.port and param.port < BSP_CAN_DEVICE_COUNT);
 
     // Init Motor Param
     strcpy(name_, name);
@@ -97,19 +97,19 @@ void DJIMotor::disable() {
     enabled_ = false;
 }
 
-void dev_dji_motor_can_callback(bsp_can_msg_t *msg) {
-    if(!device_cnt[msg->port]) return;
+void dev_dji_motor_can_callback(bsp_can_e device, uint32_t id, const uint8_t *data, size_t len) {
+    if(!device_cnt[device]) return;
 
     DJIMotor *p = nullptr;
-    for(uint8_t i = 0; i < device_cnt[msg->port]; i++) {
-        if(device_ptr[msg->port][i]->feedback_id == msg->header.Identifier) {
-            p = device_ptr[msg->port][i];
+    for(uint8_t i = 0; i < device_cnt[device]; i++) {
+        if(device_ptr[device][i]->feedback_id == id) {
+            p = device_ptr[device][i];
             break;
         }
     }
     if(p == nullptr) return;
 
-    uint8_t *s = msg->data;
+    const uint8_t *s = data;
 
     p->feedback_.angle = static_cast <int16_t> (s[0] << 8 | s[1]);
     p->feedback_.speed = static_cast <int16_t> (s[2] << 8 | s[3]);
@@ -128,12 +128,12 @@ void dev_dji_motor_task(void *arg) {
     UNUSED(arg);
     while(!inited) osDelay(10);
     while(true) {
-        for(uint8_t i = 0; i < BSP_CAN_ENUM_SIZE; i++) {
+        for(uint8_t i = 0; i < BSP_CAN_DEVICE_COUNT; i++) {
             if(!device_cnt[i]) continue;
             // Send Control Message
             for(uint8_t j = 0; j < ctrl_id_map_size; j++) {
                 if(ctrl_id_used[i][j]) {
-                    bsp_can_send(static_cast <bsp_can_e> (i), ctrl_id_map[j], can_tx_buf[i][j]);
+                    bsp_can_send(static_cast <bsp_can_e> (i), ctrl_id_map[j], can_tx_buf[i][j], 8);
                 }
             }
         }

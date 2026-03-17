@@ -76,7 +76,7 @@ namespace Motor {
 extern "C" {
 #endif
 
-void dev_dji_motor_can_callback(bsp_can_msg_t *msg);
+void dev_dji_motor_can_callback(bsp_can_e device, uint32_t id, const uint8_t *data, size_t len);
 void dev_dji_motor_task(void *arg);
 
 #ifdef __cplusplus

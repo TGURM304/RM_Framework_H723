@@ -12,7 +12,7 @@
 
 #include "string.h"
 
-#define RC_UART_PORT huart5
+#define E_UART_RC E_UART_5
 
 /*
  *  遥控器原始数据包，禁止从外部直接访问或修改。
@@ -28,7 +28,7 @@ typedef struct {
 static bsp_rc_raw_t raw;
 bsp_rc_data_t data;
 
-void rc_uart_callback(bsp_uart_e e, uint8_t *s, uint16_t l) {
+void rc_uart_callback(bsp_uart_e e, const uint8_t *s, size_t l) {
     BSP_ASSERT(e == E_UART_RC);
     BSP_ASSERT(sizeof(bsp_rc_raw_t) * 8 == 128 + 16);
     memcpy(&raw, s, sizeof raw);
@@ -47,6 +47,5 @@ const bsp_rc_data_t *bsp_rc_data() {
 }
 
 void bsp_rc_init() {
-    bsp_uart_init(E_UART_RC, &RC_UART_PORT);
     bsp_uart_set_callback(E_UART_RC, rc_uart_callback);
 }

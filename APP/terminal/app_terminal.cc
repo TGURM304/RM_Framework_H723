@@ -161,7 +161,7 @@ void input(char c) {
     // bsp_uart_printf(TERMINAL_PORT, "received: %d\r\n", (int) c);
 }
 
-void recv(bsp_uart_e e, uint8_t *s, uint16_t l) {
+void recv(bsp_uart_e e, const uint8_t *s, size_t l) {
     if(l == 3 and s[0] == 27 and s[1] == 91) {
         if(s[2] == 65) {
             // Up

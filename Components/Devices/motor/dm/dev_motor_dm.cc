@@ -12,12 +12,12 @@
 
 using namespace Motor;
 
-static DMMotor *device_ptr[BSP_CAN_ENUM_SIZE][DM_MOTOR_LIMIT];
-uint8_t device_cnt[BSP_CAN_ENUM_SIZE];
+static DMMotor *device_ptr[BSP_CAN_DEVICE_COUNT][DM_MOTOR_LIMIT];
+uint8_t device_cnt[BSP_CAN_DEVICE_COUNT];
 
 DMMotor::DMMotor(const char *name, const Model &model, const Param &param) : model_(model), param_(param){
     BSP_ASSERT(model == J4310 or model == J8009P);
-    BSP_ASSERT(0 <= param.port and param.port < BSP_CAN_ENUM_SIZE);
+    BSP_ASSERT(0 <= param.port and param.port < BSP_CAN_DEVICE_COUNT);
 
     if(model == J4310 or model == J8009P) {
         if(param.mode == MIT) {
@@ -41,20 +41,20 @@ void DMMotor::init() {
 
 void DMMotor::reset() {
     uint8_t msg[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfb };
-    bsp_can_send(param_.port, ctrl_id, msg);
+    bsp_can_send(param_.port, ctrl_id, msg, 8);
 }
 
 void DMMotor::enable() {
     // if(enabled_) return;
     uint8_t msg[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc };
-    bsp_can_send(param_.port, ctrl_id, msg);
+    bsp_can_send(param_.port, ctrl_id, msg, 8);
     enabled_ = true;
 }
 
 void DMMotor::disable() {
     // if(!enabled_) return;
     uint8_t msg[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfd };
-    bsp_can_send(param_.port, ctrl_id, msg);
+    bsp_can_send(param_.port, ctrl_id, msg, 8);
     enabled_ = false;
 }
 
@@ -74,7 +74,7 @@ void DMMotor::control(float speed) const {
     if(!enabled_) return;
     uint8_t msg[8] = { 0 };
     memcpy(msg, &speed, sizeof speed);
-    bsp_can_send(param_.port, ctrl_id, msg);
+    bsp_can_send(param_.port, ctrl_id, msg, 8);
 }
 
 // POSITION_SPEED
@@ -84,7 +84,7 @@ void DMMotor::control(float position, float speed) const {
     uint8_t msg[8] = { 0 };
     memcpy(msg, &position, sizeof position);
     memcpy(msg + sizeof position, &speed, sizeof speed);
-    bsp_can_send(param_.port, ctrl_id, msg);
+    bsp_can_send(param_.port, ctrl_id, msg, 8);
 }
 
 // MIT
@@ -108,7 +108,7 @@ void DMMotor::control(float position, float speed, float Kp, float Kd, float tor
     msg[5] = Kd_ >> 4;
     msg[6] = (Kd_ & 0xf) << 4 | (T_ff >> 8);
     msg[7] = T_ff & 0xff;
-    bsp_can_send(param_.port, ctrl_id, msg);
+    bsp_can_send(param_.port, ctrl_id, msg, 8);
 }
 
 DMMotor::Param *DMMotor::get_param() {
@@ -121,20 +121,20 @@ void DMMotor::update(float output) {
 }
 
 
-void dev_dm_motor_can_callback(bsp_can_msg_t* msg) {
-    if(!device_cnt[msg->port]) return;
+void dev_dm_motor_can_callback(bsp_can_e device, uint32_t id, const uint8_t *data, size_t len) {
+    if(!device_cnt[device]) return;
 
     DMMotor *p = nullptr;
-    for(uint8_t i = 0; i < device_cnt[msg->port]; i++) {
-        if(msg->header.Identifier == device_ptr[msg->port][i]->feedback_id) {
-            p = device_ptr[msg->port][i];
+    for(uint8_t i = 0; i < device_cnt[device]; i++) {
+        if(id == device_ptr[device][i]->feedback_id) {
+            p = device_ptr[device][i];
             break;
         }
     }
 
     if(p == nullptr) return;
 
-    const auto s = msg->data;
+    const auto s = data;
     p->feedback_.err = s[0] >> 4;
     p->feedback_.id = s[0] & 0xf;
     p->feedback_.pos = s[1] << 8 | s[2];

@@ -33,6 +33,10 @@
 #include "stm32h7xx_hal.h"
 #include "w25q64.h"
 
+#include "stdarg.h"
+
+#define DEBUG_PORT E_UART_1
+
 /* default environment variables set for user */
 static const ef_env default_env_set[] = {
   { "SN", "\0", 32 * sizeof(uint8_t) }
@@ -145,6 +149,6 @@ void ef_print(const char *format, ...) {
   va_start(args, format);
   char buf[512];
   int len = vsprintf(buf, format, args);
-  bsp_uart_send(E_UART_DEBUG, buf, len);
+  bsp_uart_send(DEBUG_PORT, buf, len);
   va_end(args);
 }

@@ -45,7 +45,7 @@ void app_ins_init() {
     } else {
         temp_pid.set_para(12500, 10, 1, 25000, 10000);
     }
-    HAL_TIM_PWM_Start(IMU_TEMPERATURE_CONTROL_TIMER, IMU_TEMPERATURE_CONTROL_CHANNEL);
+    // HAL_TIM_PWM_Start(IMU_TEMPERATURE_CONTROL_TIMER, IMU_TEMPERATURE_CONTROL_CHANNEL);
     IMU_QuaternionEKF_Init(10, 0.001, 10000000, 1, 0.001f, 0);
 
     bsp_flash_read("ins", &ins_flash_data, sizeof(ins_flash_data));

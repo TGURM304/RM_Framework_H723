@@ -1,118 +1,121 @@
 //
-// Created by fish on 2024/11/15.
+// Created by fish on 2025/9/24.
 //
 
 #include "bsp_can.h"
 
-#include "bsp_def.h"
+#include <string.h>
 
-static FDCAN_HandleTypeDef *handle[E_CAN_END_DONT_REMOVE];
+#include "fdcan.h"
 
-static uint8_t cnt[E_CAN_END_DONT_REMOVE][2];
-static uint32_t rx_id[E_CAN_END_DONT_REMOVE][2][BSP_CAN_FILTER_LIMIT];
-static void (*callback[E_CAN_END_DONT_REMOVE][BSP_CAN_FILTER_LIMIT]) (bsp_can_msg_t *msg);
+static FDCAN_HandleTypeDef *handle[BSP_CAN_DEVICE_COUNT] = {
+    [E_CAN_1] = &hfdcan1,
+    [E_CAN_2] = &hfdcan2,
+    [E_CAN_3] = &hfdcan3
+};
 
-void bsp_can_init(bsp_can_e e, FDCAN_HandleTypeDef *h) {
-    handle[e] = h;
-    HAL_FDCAN_ActivateNotification(h, FDCAN_IT_TX_FIFO_EMPTY, 0);
-    HAL_FDCAN_ActivateNotification(h, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
-    HAL_FDCAN_ActivateNotification(h, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
-    HAL_FDCAN_ConfigGlobalFilter(h, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_REJECT_REMOTE);
-    // 一定要在配置完后 Start，否则若总线上有 CAN 包，设备会 BUSY。
-    HAL_FDCAN_Start(h);
+static uint8_t cnt[BSP_CAN_DEVICE_COUNT];
+static uint32_t pkg_id[BSP_CAN_DEVICE_COUNT][BSP_CAN_FILTER_LIMIT_STD];
+static bsp_can_callback_t callback[BSP_CAN_DEVICE_COUNT][BSP_CAN_FILTER_LIMIT_STD];
+
+static uint8_t rx_buffer[BSP_CAN_DEVICE_COUNT][BSP_CAN_FILTER_LIMIT_STD][BSP_CAN_BUFFER_SIZE];
+
+void bsp_can_init(bsp_can_e device) {
+    HAL_FDCAN_ActivateNotification(handle[device], FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+    HAL_FDCAN_ActivateNotification(handle[device], FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0);
+    HAL_FDCAN_ConfigGlobalFilter(handle[device], FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
+    HAL_FDCAN_Start(handle[device]);
 }
 
-uint8_t bsp_can_set_callback(bsp_can_e e, uint32_t id, void (*f) (bsp_can_msg_t *msg)) {
-    uint8_t is_ext = id > 0x7ff;
+void bsp_can_set_callback(bsp_can_e device, uint32_t id, bsp_can_callback_t func) {
+    BSP_ASSERT(cnt[device] < BSP_CAN_FILTER_LIMIT_STD && func != NULL && id <= 0x7ff);
+    pkg_id[device][cnt[device]] = id;
+    callback[device][cnt[device]] = func;
 
-    BSP_ASSERT(cnt[e][is_ext] < BSP_CAN_FILTER_LIMIT && f != NULL);
-    rx_id[e][is_ext][cnt[e][is_ext]] = id;
-    callback[e][cnt[e][is_ext]] = f;
+    // 确保同一 CAN 总线上注册的 id 不重复
+    for (int i = 0; i < cnt[device]; i++) BSP_ASSERT(pkg_id[device][i] != id);
 
     FDCAN_FilterTypeDef filter = {
-        .IdType = id > 0x7ff ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID,
-        .FilterIndex = cnt[e][is_ext],
-        .FilterType = FDCAN_FILTER_DUAL,
+        .IdType = FDCAN_STANDARD_ID,
+        .FilterIndex = cnt[device],
+        .FilterType = FDCAN_FILTER_MASK,
         .FilterID1 = id,
-        .FilterID2 = id,
-        .FilterConfig = (id & 1) ? FDCAN_FILTER_TO_RXFIFO0 : FDCAN_FILTER_TO_RXFIFO1,
+        .FilterID2 = 0x7ff,
+        .FilterConfig = FDCAN_FILTER_TO_RXFIFO0,
     };
 
-    BSP_ASSERT(HAL_FDCAN_ConfigFilter(handle[e], &filter) == HAL_OK);
-    return cnt[e][is_ext] ++;
+    BSP_ASSERT(HAL_FDCAN_ConfigFilter(handle[device], &filter) == HAL_OK);
+
+    cnt[device] ++;
 }
 
-void bsp_can_send(bsp_can_e e, uint32_t id, uint8_t *s) {
-    BSP_ASSERT(handle[e]);
-    FDCAN_TxHeaderTypeDef header = {
-        .Identifier = id,
-        .TxFrameType = FDCAN_DATA_FRAME,
-        .DataLength = FDCAN_DLC_BYTES_8,
-        .ErrorStateIndicator = FDCAN_ESI_ACTIVE,
-        .BitRateSwitch = FDCAN_BRS_OFF,
-        .FDFormat = FDCAN_CLASSIC_CAN,
-        .TxEventFifoControl = FDCAN_STORE_TX_EVENTS,
-        .MessageMarker = 0x01
-    };
-    while(handle[e]->Instance->TXFQS & FDCAN_TXFQS_TFQF) __NOP();
-    HAL_FDCAN_AddMessageToTxFifoQ(handle[e], &header, s);
-}
-
-static uint32_t get_data_length(uint8_t l) {
+static uint32_t len2code(uint8_t l) {
     if(l <= 8) return l;
-    if(l <= 12) return FDCAN_DLC_BYTES_12;
-    if(l <= 16) return FDCAN_DLC_BYTES_16;
-    if(l <= 20) return FDCAN_DLC_BYTES_20;
-    if(l <= 24) return FDCAN_DLC_BYTES_24;
-    if(l <= 32) return FDCAN_DLC_BYTES_32;
-    if(l <= 48) return FDCAN_DLC_BYTES_48;
-    if(l <= 64) return FDCAN_DLC_BYTES_64;
+    if(l == 12) return FDCAN_DLC_BYTES_12;
+    if(l == 16) return FDCAN_DLC_BYTES_16;
+    if(l == 20) return FDCAN_DLC_BYTES_20;
+    if(l == 24) return FDCAN_DLC_BYTES_24;
+    if(l == 32) return FDCAN_DLC_BYTES_32;
+    if(l == 48) return FDCAN_DLC_BYTES_48;
+    if(l == 64) return FDCAN_DLC_BYTES_64;
     BSP_ASSERT(0); return 0;
 }
 
-void bsp_can_fd_send(bsp_can_e e, uint32_t id, uint8_t *s, uint8_t l) {
-    BSP_ASSERT(handle[e]);
+// len <= 8 时使用标准 can，len > 8 时使用 fdcan
+// **若使用 fdcan，总线上不能有只支持标准 can 的节点
+void bsp_can_send(bsp_can_e device, uint32_t id, const uint8_t *data, uint8_t len) {
+    BSP_ASSERT(data != NULL && len > 0 && len <= 64 && id <= 0x7ff);
     FDCAN_TxHeaderTypeDef header = {
         .Identifier = id,
-        .IdType = id > 0x7ff ? FDCAN_EXTENDED_ID : FDCAN_STANDARD_ID,
+        .IdType = FDCAN_STANDARD_ID,
         .TxFrameType = FDCAN_DATA_FRAME,
-        .DataLength = get_data_length(l),
+        .DataLength = len2code(len),
         .ErrorStateIndicator = FDCAN_ESI_ACTIVE,
-        .BitRateSwitch = FDCAN_BRS_ON,
-        .FDFormat = FDCAN_FD_CAN,
+        .BitRateSwitch = len > 8 ? FDCAN_BRS_ON : FDCAN_BRS_OFF,
+        .FDFormat = len > 8 ? FDCAN_FD_CAN : FDCAN_CLASSIC_CAN,
         .TxEventFifoControl = FDCAN_STORE_TX_EVENTS,
         .MessageMarker = 0x01
     };
-    while(handle[e]->Instance->TXFQS & FDCAN_TXFQS_TFQF) __NOP();
-    HAL_FDCAN_AddMessageToTxFifoQ(handle[e], &header, s);
+    HAL_FDCAN_AddMessageToTxFifoQ(handle[device], &header, data);
 }
 
-void bsp_can_rx_sol(bsp_can_e e, uint32_t fifo) {
-    bsp_can_msg_t msg = { .port = e };
-    while(HAL_FDCAN_GetRxFifoFillLevel(handle[e], fifo)) {
-        if(HAL_FDCAN_GetRxMessage(handle[e], fifo, &msg.header, msg.data) != HAL_OK) break;
-        if(msg.header.FDFormat == FDCAN_CLASSIC_CAN || msg.header.FDFormat == FDCAN_FD_CAN) {
-            uint8_t is_ext = (msg.header.IdType == FDCAN_EXTENDED_ID);
-            for(uint8_t i = 0; i < cnt[e][is_ext]; i++) {
-                if(rx_id[e][is_ext][i] == msg.header.Identifier) {
-                    BSP_ASSERT(callback[e][i] != NULL);
-                    callback[e][i](&msg);
-                }
+static uint8_t code2len(uint32_t l) {
+    if(l <= 8) return l;
+    if(l == FDCAN_DLC_BYTES_12) return 12;
+    if(l == FDCAN_DLC_BYTES_16) return 16;
+    if(l == FDCAN_DLC_BYTES_20) return 20;
+    if(l == FDCAN_DLC_BYTES_24) return 24;
+    if(l == FDCAN_DLC_BYTES_32) return 32;
+    if(l == FDCAN_DLC_BYTES_48) return 48;
+    if(l == FDCAN_DLC_BYTES_64) return 64;
+    BSP_ASSERT(0); return 0;
+}
+
+void bsp_can_callback_sol(bsp_can_e device, uint32_t fifo) {
+    FDCAN_RxHeaderTypeDef header;
+    static uint8_t buf[BSP_CAN_BUFFER_SIZE] = { 0 };
+    while (HAL_FDCAN_GetRxFifoFillLevel(handle[device], fifo)) {
+        if (HAL_FDCAN_GetRxMessage(handle[device], fifo, &header, buf) != HAL_OK) break;
+        for (uint8_t i = 0; i < cnt[device]; i++) {
+            if (pkg_id[device][i] == header.Identifier) {
+                uint8_t len = code2len(header.DataLength);
+                memcpy(rx_buffer[device][i], buf, len);
+                if (callback[device][i] != NULL) callback[device][i](device, header.Identifier, rx_buffer[device][i], len);
+                break;
             }
         }
     }
 }
 
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *h, uint32_t RxFifo0ITs) {
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *device, uint32_t RxFifo0ITs) {
     UNUSED(RxFifo0ITs);
-    for(uint8_t i = 0; i < (uint8_t) E_CAN_END_DONT_REMOVE; i++) {
-        if(handle[i] == h) bsp_can_rx_sol(i, FDCAN_RX_FIFO0);
-    }
-}
-
-void HAL_FDCAN_RxFifo1Callback(FDCAN_HandleTypeDef *h, uint32_t RxFifo1ITs) {
-    UNUSED(RxFifo1ITs);
-    for(uint8_t i = 0; i < (uint8_t) E_CAN_END_DONT_REMOVE; i++) {
-        if(handle[i] == h) bsp_can_rx_sol(i, FDCAN_RX_FIFO1);
+    switch((uint32_t) device->Instance) {
+    case (uint32_t) FDCAN1:
+        bsp_can_callback_sol(E_CAN_1, FDCAN_RX_FIFO0); break;
+    case (uint32_t) FDCAN2:
+        bsp_can_callback_sol(E_CAN_2, FDCAN_RX_FIFO0); break;
+    case (uint32_t) FDCAN3:
+        bsp_can_callback_sol(E_CAN_3, FDCAN_RX_FIFO0); break;
+    default: break;
     }
 }

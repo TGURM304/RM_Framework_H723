@@ -5,13 +5,11 @@
 #include "app_sys.h"
 
 #include "app_ins.h"
-#include "app_motor.h"
 #include "bsp_uart.h"
 #include "bsp_can.h"
 #include "bsp_led.h"
 #include "bsp_adc.h"
 #include "bsp_rc.h"
-#include "motor_base.h"
 #include "sys_task.h"
 #include "app_chassis.h"
 #include "app_gimbal.h"
@@ -25,7 +23,6 @@
 #include "bsp_def.h"
 
 #include "app_msg.h"
-#include "app_referee.h"
 #include "app_sys_err.h"
 #include "app_music.h"
 #include "app_terminal.h"
@@ -75,9 +72,7 @@ void app_sys_init() {
     config.type |= 0b10;
     app_gimbal_init();
 #endif
-#ifdef USE_REFEREE_SYSTEM
-    app_referee_init();
-#endif
+
 #ifdef USE_FLASH_CHECK
     // 校验 flash 中的 brief，若此处校验不通过，请连接 terminal 执行 flash clear
     bsp_flash_read("sys", &flash, sizeof(flash));
@@ -100,16 +95,16 @@ void bsp_hw_init() {
     bsp_adc_init();
     bsp_flash_init();
     bsp_buzzer_init();
-    bsp_can_init(E_CAN1, &hfdcan1);
-    bsp_can_init(E_CAN2, &hfdcan2);
-    bsp_can_init(E_CAN3, &hfdcan3);
-    bsp_uart_init(E_UART_DEBUG, &huart1);
+    bsp_can_init(E_CAN_1);
+    bsp_can_init(E_CAN_2);
+    bsp_can_init(E_CAN_3);
+    MX_USB_DEVICE_Init();
 }
 
 // 放一些系统级任务
 void app_sys_task() {
     bsp_hw_init();
-    bsp_buzzer_flash(1976, 0.5, 250);
+    bsp_buzzer_flash(4500, 0.5, 100);
     bsp_led_set(0, 0, 255);
     app_sys_init();
     bsp_led_set(0, 255, 0);

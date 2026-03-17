@@ -22,7 +22,7 @@ void can_msg_task(void *args) {
         int count = 0;
         while(can_msg_q_.size() and count++ < MSG_CAN_LIMIT_PER_MILLISECOND) {
             can_msg_q_.receive(msg);
-            bsp_can_send(msg.port, msg.id, msg.data.begin());
+            bsp_can_send(msg.port, msg.id, msg.data.begin(), 8);
             OS::Task::Yield();
         }
         OS::Task::SleepMilliseconds(1);
@@ -45,16 +45,16 @@ void app_msg_can_send(bsp_can_e e, uint32_t id, uint8_t *s) {
 std::function<void(uint8_t*, uint16_t)> can_recv_callback = nullptr;
 uint8_t can_recv_buf[512], can_recv_sz = 0, can_recv_tot_sz = 0;
 
-void app_msg_can_recv(bsp_can_msg_t *msg) {
+void app_msg_can_recv(bsp_can_e device, uint32_t id, const uint8_t *data, size_t LEN) {
     if(can_recv_sz) {
         auto len = std::min(can_recv_tot_sz - can_recv_sz, 8);
-        std::copy_n(msg->data, len, can_recv_buf + can_recv_sz);
+        std::copy_n(data, len, can_recv_buf + can_recv_sz);
         can_recv_sz += len;
     }
-    else if(msg->data[0] == 0xa5 and msg->data[1] == 0x5a) {
-        can_recv_tot_sz = msg->data[2] + 4; // 帧头 2byte + CRC8 1byte
+    else if(data[0] == 0xa5 and data[1] == 0x5a) {
+        can_recv_tot_sz = data[2] + 4; // 帧头 2byte + CRC8 1byte
         auto len = std::min(can_recv_tot_sz - can_recv_sz, 8);
-        std::copy_n(msg->data, len, can_recv_buf + can_recv_sz);
+        std::copy_n(data, len, can_recv_buf + can_recv_sz);
         can_recv_sz = std::min(can_recv_tot_sz, static_cast <uint8_t> (8));
     }
     if(can_recv_sz and can_recv_sz == can_recv_tot_sz) {

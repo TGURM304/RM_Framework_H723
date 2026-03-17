@@ -266,7 +266,8 @@ static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 11 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceHS);
-  usb_cdc_callback(Buf, *Len);
+  // usb_cdc_callback(Buf, *Len);
+  // TODO: 支持 CDC 接收
   return (USBD_OK);
   /* USER CODE END 11 */
 }

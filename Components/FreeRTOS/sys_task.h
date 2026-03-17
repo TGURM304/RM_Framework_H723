@@ -5,13 +5,20 @@
 #pragma once
 
 #include "FreeRTOS.h"
+#include "cmsis_os2.h"
 #include "task.h"
 #include "sys_ext.h"
 
 namespace OS {
     class Task {
     public:
-        typedef enum { IDLE, LOW, MEDIUM, HIGH, REALTIME } Priority;
+        typedef enum {
+            IDLE = osPriorityIdle,
+            LOW = osPriorityLow,
+            MEDIUM = osPriorityNormal,
+            HIGH = osPriorityHigh,
+            REALTIME = osPriorityRealtime
+        } Priority;
         TaskHandle_t handle_ = nullptr;
 
         Task() = default;
