@@ -9,7 +9,9 @@
 #include "bsp_imu.h"
 
 struct app_ins_data_t {
+    float q[4];
 	float yaw, pitch, roll;
+    float yaw_total_angle;
 	bsp_imu_raw_data_t raw;
 };
 

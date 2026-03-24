@@ -158,6 +158,8 @@ void app_ins_task(void *args) {
                                      data.raw.accel[1],
                                      data.raw.accel[2]);
             std::tie(data.roll, data.pitch, data.yaw) = IMU_QuaternionEKF_Data();
+            data.yaw_total_angle = QEKF_INS.YawTotalAngle;
+            memcpy(data.q, QEKF_INS.q, sizeof(QEKF_INS.q));
         }
         if(ins_flag == 0) {
             if(count) {
